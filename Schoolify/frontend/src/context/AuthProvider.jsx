@@ -1,0 +1,1 @@
+// React context para dar el contexto de los usuarios si estan autenticados o no
