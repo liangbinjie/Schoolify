@@ -1,7 +1,7 @@
 import { MongoClient, ServerApiVersion } from "mongodb";
 
 const uri = process.env.MONGO_URI;
-const client = new MongoClient(uri, {
+const mongoClient = new MongoClient(uri, {
     serverApi: {
         version: ServerApiVersion.v1,
         strict: true,
@@ -10,7 +10,7 @@ const client = new MongoClient(uri, {
 });
 
 try {
-    await client.connect();
+    await mongoClient.connect();
     console.log("Successfully connected to MongoDB!");
     } catch(err) {
         console.error("Error connecting to MongoDB:", err);
