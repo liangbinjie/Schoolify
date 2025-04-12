@@ -1,54 +1,47 @@
 import express from "express";
-import mongoClient from "../db/mongoClient.js";
-import { ObjectId } from "mongodb";
 import bcrypt from "bcrypt";
+import User from '../db/models/userModel.js'
 
 const userRouter = express.Router();
 
-userRouter.get("/", async (req, res) => {
-    let db = mongoClient.db("schoolify");
-    let collection = await db.collection("users");
-    let users = await collection.find({}).toArray();
-    res.status(200).json(users);
-});
-
-userRouter.get("/:id", async (req, res) => {
-    let db = mongoClient.db("schoolify");
-    let collection = await db.collection("users");
-    let user = await collection.findOne({ _id: ObjectId(req.params.id) });
-    if (!user) {
-        return res.status(404).json({ message: "User not found" });
-    }
-    res.status(200).json(user);
-});
-
+// create USER post route
 userRouter.post("/", async (req, res) => {
-    let { firstName, lastName, email, username, password, birthDate, profilePicture} = req.body;
-    if (!firstName || !lastName || !email || !username || !password || !birthDate) {
-        return res.status(400).json({ message: "Please fill in all fields" });
+  const { firstName, lastName, email, username, password, birthDate, profilePicture } = req.body;
+
+  if (!firstName || !lastName || !email || !username || !password || !birthDate) {
+    return res.status(400).json({ message: "Please fill in all required fields" });
+  }
+
+  try {
+    // Check for existing user
+    const existing = await User.findOne({ $or: [{ email }, { username }] });
+    if (existing) {
+      return res.status(400).json({ message: "Email or username already exists" });
     }
-    try {
-        const saltRounds = 10;
-        const salt = await bcrypt.genSalt(saltRounds);
-        let hashedPassword = await bcrypt.hash(password, salt);
-        let newUser = {
-            firstName,
-            lastName,
-            email,
-            username,
-            password: hashedPassword,
-            salt,
-            birthDate,
-            profilePicture
-        };
-        let db = mongoClient.db("schoolify");
-        let collection = await db.collection("users");
-        let result = await collection.insertOne(newUser);
-        res.status(201).json({ message: "User created", userId: result.insertedId });
-    } catch (error) {
-        console.error("Error creating user:", error);
-        res.status(500).json({ message: "Internal server error" });
-    }
+
+    // Manually generate salt and hash password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    // Save user
+    const newUser = new User({
+      firstName,
+      lastName,
+      email,
+      username,
+      password: hashedPassword,
+      salt, // Save salt separately
+      birthDate,
+      profilePicture
+    });
+
+    await newUser.save();
+    res.status(201).json({ message: "User created", userId: newUser._id });
+
+  } catch (err) {
+    console.error("User creation error:", err);
+    res.status(500).json({ message: "Internal server error" });
+  }
 });
 
 export default userRouter;
