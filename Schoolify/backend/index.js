@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import userRouter from './routes/userRoute.js';
 import courseRouter from './routes/courseRoute.js';
+import enrollmentRouter from './routes/enrollmentRoute.js';
 import connectMongoDB from './db/mongoClient.js';
 
 const PORT = process.env.PORT || 5000;
