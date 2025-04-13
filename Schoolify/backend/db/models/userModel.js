@@ -8,9 +8,9 @@ const userSchema = new mongoose.Schema({
   password:  { type: String, required: true },  // Hashed password
   salt:      { type: String, required: true },  // Store salt separately
   birthDate: { type: String, required: true },
-  profilePicture: { type: String },
+  profilePicture: { type: Buffer, contentType: String },
   createdAt: { type: Date, default: Date.now }
 });
 
-const User = mongoose.model("QWE", userSchema);
+const User = mongoose.model("User", userSchema);
 export default User;
