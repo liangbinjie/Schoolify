@@ -4,8 +4,8 @@ const courseSchema = new mongoose.Schema({
     code: {type: String, required: true},
     name: {type: String, required: true},
     description: {type: String, required: true},
-    startDate: {type: Date, required: true},
-    endDate: {type: Date, default: undefined},
+    startDate: {type: Date, required: true}, // MM/DD/YYYY
+    endDate: {type: Date, default: undefined}, // MM/DD/YYYY
     image: {type: String, required: true},
     studentList: {type: Array, default: []},
     teacher: {type: String, required: true},

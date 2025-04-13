@@ -40,10 +40,16 @@ courseRouter.post("/", async (req, res) => {
     }
 
     try {
-        // Check for existing course
-        const existing = await Course.findOne({ $or: [{ code }, { name }] });
-        if (existing) {
-            return res.status(400).json({ message: "Course code or name already exists" });
+        // This validation allows different teachers to create courses with the same code and name
+        // It only prevents a single teacher from creating duplicate courses with the same code and name
+        const existingCourseByTeacher = await Course.findOne({ 
+            code: code, 
+            name: name,
+            teacher: teacher 
+        });
+
+        if (existingCourseByTeacher) {
+            return res.status(400).json({ message: "You already have a course with this code and name" });
         }
 
         // Save course
@@ -69,47 +75,77 @@ courseRouter.post("/", async (req, res) => {
 });
 
 // Clone course route
-courseRouter.post("/clone/:courseId", async (req, res) => {
-    const { courseId } = req.params;
-    const { newCode, newName, newStartDate, newEndDate } = req.body;
-    
-    if (!newCode || !newName || !newStartDate || !newEndDate) {
-        return res.status(400).json({ message: "Please provide new code, name, and dates for the cloned course" });
+courseRouter.post("/clone/:id", async (req, res) => {
+    const { id } = req.params;
+    const { code, name, description, startDate, endDate, image, teacher } = req.body;
+
+    if (!code || !name || !startDate || !endDate || !teacher) {
+        return res.status(400).json({ message: "Please provide code, name, start date, end date, and teacher for the cloned course" });
     }
 
     try {
-        // Find the original course
-        const originalCourse = await Course.findById(courseId);
+        // Find the original course to clone
+        const originalCourse = await Course.findById(id);
         if (!originalCourse) {
             return res.status(404).json({ message: "Original course not found" });
         }
 
-        // Check if a course with the new code already exists
-        const existingCourse = await Course.findById(newCode);
-        if (existingCourse) {
-            return res.status(400).json({ message: "A course with the new code already exists" });
+        // Check if the new code and name are different from the original
+        if (code === originalCourse.code) {
+            return res.status(400).json({ message: "The cloned course must have a different code from the original" });
         }
 
-        // Clone the course with the required modifications
-        const clonedCourse = new Course({
-            _id: newCode,
-            name: newName,
-            description: originalCourse.description,
-            startDate: newStartDate,
-            endDate: newEndDate,
-            image: originalCourse.image,
-            studentList: [], // Optionally, you can copy students from original course if needed
-            teacher: originalCourse.teacher,
-            status: "in edition" // Set status to "en edicion"
+        if (name === originalCourse.name) {
+            return res.status(400).json({ message: "The cloned course must have a different name from the original" });
+        }
+
+        // Convert dates to comparable format
+        const originalStartDate = new Date(originalCourse.startDate).toISOString().split('T')[0];
+        const originalEndDate = new Date(originalCourse.endDate).toISOString().split('T')[0];
+        const newStartDate = new Date(startDate).toISOString().split('T')[0];
+        const newEndDate = new Date(endDate).toISOString().split('T')[0];
+
+        // Check if dates are different
+        if (newStartDate === originalStartDate) {
+            return res.status(400).json({ message: "The cloned course must have a different start date from the original" });
+        }
+
+        if (newEndDate === originalEndDate) {
+            return res.status(400).json({ message: "The cloned course must have a different end date from the original" });
+        }
+
+        // Check if the teacher already has a course with this code or name
+        const existingCourseByTeacher = await Course.findOne({ 
+            teacher: teacher,
+            $or: [
+                { code: code },
+                { name: name }
+            ]
         });
 
-        // Save the cloned course
-        await clonedCourse.save();
+        if (existingCourseByTeacher) {
+            return res.status(400).json({ message: "You already have a course with this code or name" });
+        }
 
+        // Create the cloned course
+        const clonedCourse = new Course({
+            code, // Required to be different
+            name, // Required to be different
+            description: description !== undefined ? description : originalCourse.description, // Optional to change
+            startDate, // Required to be different
+            endDate, // Required to be different
+            image: image !== undefined ? image : originalCourse.image, // Optional to change
+            studentList: [], // Start with empty student list for the clone
+            teacher,
+            state: "in edition" // Set default state to "in edition"
+        });
+
+        await clonedCourse.save();
         res.status(201).json({ 
             message: "Course cloned successfully", 
             course: clonedCourse 
         });
+
     } catch (err) {
         console.error("Error cloning course:", err);
         res.status(500).json({ message: "Internal server error" });
