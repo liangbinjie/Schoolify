@@ -1,4 +1,5 @@
 import express from "express";
+import bcrypt from "bcrypt";
 import Enrollment from "../db/models/enrollmentModel.js";
 
 const enrollmentRouter = express.Router();
