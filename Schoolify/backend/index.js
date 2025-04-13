@@ -14,6 +14,7 @@ app.use(cors());
 app.use(express.json());
 app.use("/user", userRouter);
 app.use("/course", courseRouter);
+app.use("/enrollment", enrollmentRouter);
 
 app.get("/", (req, res) => {
     return res.status(234).send("hello world");
