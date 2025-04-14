@@ -2,9 +2,11 @@ import React, { useState } from "react";
 
 function SignInPage() {
     const [formData, setFormData] = useState({
+        firstName: "",
+        lastName: "",
+        email: "",
         username: "",
         password: "",
-        fullName: "",
         birthDate: "",
         avatar: null,
     });
@@ -20,8 +22,18 @@ function SignInPage() {
 
     const handleSubmit = (e) => {
         e.preventDefault();
+
+        // Convertir la fecha a formato mm/dd/aaaa
+        const formattedDate = new Date(formData.birthDate).toLocaleDateString("en-US", {
+            month: "2-digit",
+            day: "2-digit",
+            year: "numeric",
+        });
+
+        const dataToSubmit = { ...formData, birthDate: formattedDate };
+
         // Aquí enviarías los datos al backend para procesarlos
-        console.log("Datos enviados:", formData);
+        console.log("Datos enviados:", dataToSubmit);
     };
 
     return (
@@ -29,6 +41,42 @@ function SignInPage() {
             <div className="container m-5">
                 <h1>Registro de Usuario</h1>
                 <form onSubmit={handleSubmit}>
+                    <div className="mb-3">
+                        <label htmlFor="firstName" className="form-label">Nombre</label>
+                        <input
+                            type="text"
+                            className="form-control"
+                            id="firstName"
+                            name="firstName"
+                            value={formData.firstName}
+                            onChange={handleChange}
+                            required
+                        />
+                    </div>
+                    <div className="mb-3">
+                        <label htmlFor="lastName" className="form-label">Apellido</label>
+                        <input
+                            type="text"
+                            className="form-control"
+                            id="lastName"
+                            name="lastName"
+                            value={formData.lastName}
+                            onChange={handleChange}
+                            required
+                        />
+                    </div>
+                    <div className="mb-3">
+                        <label htmlFor="email" className="form-label">Correo Electrónico</label>
+                        <input
+                            type="email"
+                            className="form-control"
+                            id="email"
+                            name="email"
+                            value={formData.email}
+                            onChange={handleChange}
+                            required
+                        />
+                    </div>
                     <div className="mb-3">
                         <label htmlFor="username" className="form-label">Nombre de Usuario</label>
                         <input
@@ -49,18 +97,6 @@ function SignInPage() {
                             id="password"
                             name="password"
                             value={formData.password}
-                            onChange={handleChange}
-                            required
-                        />
-                    </div>
-                    <div className="mb-3">
-                        <label htmlFor="fullName" className="form-label">Nombre Completo</label>
-                        <input
-                            type="text"
-                            className="form-control"
-                            id="fullName"
-                            name="fullName"
-                            value={formData.fullName}
                             onChange={handleChange}
                             required
                         />

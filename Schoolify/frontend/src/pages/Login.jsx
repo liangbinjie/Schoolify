@@ -1,11 +1,13 @@
-
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom"; // Importa useNavigate
 
 function LoginPage() {
     const [formData, setFormData] = useState({
         username: "",
         password: "",
     });
+
+    const navigate = useNavigate(); // Inicializa el hook useNavigate
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -14,14 +16,18 @@ function LoginPage() {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        //  Aqui poner para verificar el usuario en la base de datos- 
+        // Aquí poner para verificar el usuario en la base de datos
         console.log("Intento de inicio de sesión:", formData);
+    };
+
+    const handleSignUpRedirect = () => {
+        navigate("/signin"); // Redirige a la página de registro
     };
 
     return (
         <>
             <div className="container m-5">
-                <h1>Inicio de sesion</h1>
+                <h1>Inicio de sesión</h1>
                 <form onSubmit={handleSubmit}>
                     <div className="mb-3">
                         <label htmlFor="username" className="form-label">Nombre de Usuario</label>
@@ -48,6 +54,13 @@ function LoginPage() {
                         />
                     </div>
                     <button type="submit" className="btn btn-primary">Iniciar Sesión</button>
+                    <button
+                        type="button"
+                        className="btn btn-link mt-3"
+                        onClick={handleSignUpRedirect}
+                    >
+                        No tengo usuario
+                    </button>
                 </form>
             </div>
         </>
