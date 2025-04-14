@@ -33,7 +33,7 @@ function Navbar() {
 
             <div className="d-flex me-2" role="search">
               <a href="/login"><button className="btn btn-info">Sign In</button></a>
-              <button className="btn btn-outline-success ms-2">Sign Up</button>
+              <a href="/signin"><button className="btn btn-outline-success ms-2">Sign Up</button></a>
             </div>
           </div>
         </div>

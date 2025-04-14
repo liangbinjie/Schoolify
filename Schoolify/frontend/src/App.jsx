@@ -3,7 +3,7 @@ import './App.css'
 import Navbar from './components/Navbar.jsx'
 import Home from './pages/Home.jsx'
 import LoginPage from './pages/Login.jsx'
-
+import SignInPage from './pages/SignIn.jsx'
 
 /* 
 
@@ -21,6 +21,7 @@ function App() {
           <Route path="/" element={<Home/>} />
           <Route path="/home" element={<Home/>} />
           <Route path="/login" element={<LoginPage/>} />
+          <Route path="/signin" element={<SignInPage/>} />
         </Routes>
     </>
   )
