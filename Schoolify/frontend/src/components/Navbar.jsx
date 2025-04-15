@@ -75,7 +75,7 @@ function Navbar() {
                 </button>
                 <ul className="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton">
                   <li>
-                    <a className="dropdown-item" href="/editar-informacion">
+                    <a className="dropdown-item" href="/profile">
                       Editar Información
                     </a>
                   </li>

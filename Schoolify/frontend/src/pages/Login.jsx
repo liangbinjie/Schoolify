@@ -18,10 +18,17 @@ function LoginPage() {
         e.preventDefault();
         // Aquí poner para verificar el usuario en la base de datos
         console.log("Intento de inicio de sesión:", formData);
+
+        // Redirige a la página WindowPrincipal
+        navigate("/principal");
     };
 
     const handleSignUpRedirect = () => {
         navigate("/signin"); // Redirige a la página de registro
+    };
+
+    const handleGoToPrincipal = () => {
+        navigate("/principal"); // Redirige a la página WindowPrincipal sin autenticación
     };
 
     return (
@@ -61,6 +68,7 @@ function LoginPage() {
                     >
                         No tengo usuario
                     </button>
+                  
                 </form>
             </div>
         </>

@@ -4,7 +4,7 @@ import Navbar from './components/Navbar.jsx'
 import Home from './pages/Home.jsx'
 import LoginPage from './pages/Login.jsx'
 import SignInPage from './pages/SignIn.jsx'
-import Profile from "./pages/MyProfile.jsx";
+import Profile from "./pages/EditProfile.jsx";
 import UserProfile from "./pages/UserProfile.jsx"
 import WindowPrincipal from './pages/WindowPrincipal.jsx';
 /* 
