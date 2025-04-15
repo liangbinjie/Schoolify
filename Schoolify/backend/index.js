@@ -8,9 +8,6 @@ import tabsRouter from './routes/courseTabsRoute.js';
 import fileRouter from './routes/fileRoute.js';
 import evaluationRouter from "./routes/courseEvaluationsRoute.js";
 
-import authRouter from './routes/Auth/loginRoute.js';
-
-
 const PORT = process.env.PORT || 5000;
 const schoolify_uri = process.env.MONGO_SCHOOLIFY_DB_URI;
 
@@ -19,7 +16,6 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use("/user", userRouter);
-app.use("/", authRouter);
 app.use("/course", courseRouter);
 app.use("/enrollment", enrollmentRouter);
 app.use('/api/tabs', tabsRouter);

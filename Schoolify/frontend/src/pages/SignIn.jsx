@@ -1,6 +1,4 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom"; // Importa useNavigate
-import axios from "axios";
 
 function SignInPage() {
     const [formData, setFormData] = useState({
@@ -9,45 +7,33 @@ function SignInPage() {
         email: "",
         username: "",
         password: "",
-        birthDate: ""
-      });
-
-    const [profilePicture, setProfilePicture] = useState(null);
+        birthDate: "",
+        avatar: null,
+    });
 
     const handleChange = (e) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
+        const { name, value } = e.target;
+        setFormData({ ...formData, [name]: value });
     };
 
     const handleFileChange = (e) => {
-        setProfilePicture(e.target.files[0]);
+        setFormData({ ...formData, avatar: e.target.files[0] });
     };
 
-    const handleSubmit = async (e) => {
+    const handleSubmit = (e) => {
         e.preventDefault();
-    
-        const data = new FormData();
 
-        for (const key in formData) {
-            data.append(key, formData[key]);
-          }
-      
-          // Append file
-          if (profilePicture) {
-            data.append("profilePicture", profilePicture); // must match backend field name
-          }
-      
-          try {
-            const res = await axios.post("http://localhost:5000/user", data, {
-              headers: {
-                "Content-Type": "multipart/form-data"
-              }
-            });
-            console.log("Success:", res.data);
-            navigate("/login"); // Redirect to login after successful registration
-          } catch (err) {
-            console.error("Upload error:", err.response?.data || err.message);
-          }
+        // Convertir la fecha a formato mm/dd/aaaa
+        const formattedDate = new Date(formData.birthDate).toLocaleDateString("en-US", {
+            month: "2-digit",
+            day: "2-digit",
+            year: "numeric",
+        });
 
+        const dataToSubmit = { ...formData, birthDate: formattedDate };
+
+        // Aquí enviarías los datos al backend para procesarlos
+        console.log("Datos enviados:", dataToSubmit);
     };
 
     return (
