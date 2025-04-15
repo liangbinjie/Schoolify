@@ -4,6 +4,8 @@ import userRouter from './routes/userRoute.js';
 import courseRouter from './routes/courseRoute.js';
 import enrollmentRouter from './routes/enrollmentRoute.js';
 import connectMongoDB from './db/mongoClient.js';
+import tabsRouter from './routes/courseTabsRoute.js';
+import fileRouter from './routes/fileRoute.js';
 
 const PORT = process.env.PORT || 5000;
 const schoolify_uri = process.env.MONGO_SCHOOLIFY_DB_URI;
@@ -15,6 +17,8 @@ app.use(express.json());
 app.use("/user", userRouter);
 app.use("/course", courseRouter);
 app.use("/enrollment", enrollmentRouter);
+app.use('/api/tabs', tabsRouter);
+app.use('/api/files', fileRouter);
 
 app.get("/", (req, res) => {
     return res.status(234).send("hello world");
