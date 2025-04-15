@@ -26,19 +26,14 @@ function LoginPage() {
             password: formData.password})
             .then((response) => {
                 console.log("Inicio de sesión exitoso:", response.data);
-                alert("Inicio de sesión exitoso");
-                // Aquí puedes redirigir al usuario a otra página después de iniciar sesión
-                navigate("/home"); // Redirige a la página principal o a donde quieras
+                // Se le redirige a la pagina principal
+                navigate("/principal");
             })
             .catch((error) => {
                 console.error("Error al iniciar sesión:", error);
                 alert("Error al iniciar sesión. Verifica tus credenciales.");
             }
             )
-      
-        // Redirige a la página WindowPrincipal
-        navigate("/principal");
-
     };
 
     const handleSignUpRedirect = () => {
