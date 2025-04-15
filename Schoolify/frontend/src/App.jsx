@@ -4,6 +4,11 @@ import Navbar from './components/Navbar.jsx'
 import Home from './pages/Home.jsx'
 import LoginPage from './pages/Login.jsx'
 import SignInPage from './pages/SignIn.jsx'
+import WindowPrincipal from './pages/WindowPrincipal.jsx';
+
+
+
+
 
 /* 
 
@@ -22,6 +27,7 @@ function App() {
           <Route path="/home" element={<Home/>} />
           <Route path="/login" element={<LoginPage/>} />
           <Route path="/signin" element={<SignInPage/>} />
+          <Route path="/principal" element={<WindowPrincipal />} />
         </Routes>
     </>
   )

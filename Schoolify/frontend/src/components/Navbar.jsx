@@ -1,4 +1,10 @@
+import React from "react";
+import { useLocation } from "react-router-dom"; // Para detectar la ruta actual
+
 function Navbar() {
+  const location = useLocation(); // Obtiene la ruta actual
+  const isOnPrincipal = location.pathname === "/principal"; // Verifica si está en WindowPrincipal
+
   return (
     <>
       <nav className="navbar navbar-expand-lg bg-body-tertiary">
@@ -24,17 +30,83 @@ function Navbar() {
                   Home
                 </a>
               </li>
-              <li className="nav-item">
-                <a className="nav-link" href="#">
-                  Link
-                </a>
-              </li>
+              {isOnPrincipal && (
+                <>
+                  <li className="nav-item">
+                    <a className="nav-link" href="/explorar">
+                      Explorar
+                    </a>
+                  </li>
+                  <li className="nav-item">
+                    <a className="nav-link" href="/amigos">
+                      Amigos
+                    </a>
+                  </li>
+                  <li className="nav-item">
+                    <a className="nav-link" href="/crear-curso">
+                      Crear Curso
+                    </a>
+                  </li>
+                  {/* Buscador a la par de "Crear Curso" */}
+                  <li className="nav-item">
+                    <input
+                      type="text"
+                      className="form-control"
+                      placeholder="Buscar..."
+                      aria-label="Buscar"
+                      style={{ maxWidth: "200px", marginLeft: "15px" }} // Ajusta el tamaño y separación
+                    />
+                  </li>
+                </>
+              )}
             </ul>
 
-            <div className="d-flex me-2" role="search">
-              <a href="/login"><button className="btn btn-info">Sign In</button></a>
-              <a href="/signin"><button className="btn btn-outline-success ms-2">Sign Up</button></a>
-            </div>
+            {/* Menú desplegable "YO" alineado a la derecha */}
+            {isOnPrincipal && (
+              <div className="dropdown ms-auto">
+                <button
+                  className="btn btn-secondary dropdown-toggle"
+                  type="button"
+                  id="dropdownMenuButton"
+                  data-bs-toggle="dropdown"
+                  aria-expanded="false"
+                >
+                  YO
+                </button>
+                <ul className="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton">
+                  <li>
+                    <a className="dropdown-item" href="/editar-informacion">
+                      Editar Información
+                    </a>
+                  </li>
+                  <li>
+                    <a className="dropdown-item" href="/cursos-creados">
+                      Cursos Creados
+                    </a>
+                  </li>
+                  <li>
+                    <a className="dropdown-item" href="/cursos-matriculados">
+                      Cursos Matriculados
+                    </a>
+                  </li>
+                  <li>
+                    <a className="dropdown-item" href="/cerrar-sesion">
+                      Cerrar Sesión
+                    </a>
+                  </li>
+                </ul>
+              </div>
+            )}
+            {!isOnPrincipal && (
+              <>
+                <a href="/login">
+                  <button className="btn btn-info">Sign In</button>
+                </a>
+                <a href="/signin">
+                  <button className="btn btn-outline-success ms-2">Sign Up</button>
+                </a>
+              </>
+            )}
           </div>
         </div>
       </nav>
