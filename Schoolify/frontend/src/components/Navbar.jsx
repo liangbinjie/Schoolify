@@ -30,7 +30,6 @@ function Navbar() {
                   Home
                 </a>
               </li>
-
               {isOnPrincipal && (
                 <>
                   <li className="nav-item">
@@ -60,12 +59,6 @@ function Navbar() {
                   </li>
                 </>
               )}
-=======
-              <li className="nav-item">
-                <a className="nav-link" href="#">
-                  Link
-                </a>
-              </li>
             </ul>
 
             {/* Menú desplegable "YO" alineado a la derecha */}
