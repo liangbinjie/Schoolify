@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom"; // Importa useNavigate
+import axios from "axios";
 
 function LoginPage() {
     const [formData, setFormData] = useState({
@@ -19,8 +20,25 @@ function LoginPage() {
         // Aquí poner para verificar el usuario en la base de datos
         console.log("Intento de inicio de sesión:", formData);
 
+        axios
+            .post("http://localhost:5000/login", {
+            emailOrUsername: formData.username,
+            password: formData.password})
+            .then((response) => {
+                console.log("Inicio de sesión exitoso:", response.data);
+                alert("Inicio de sesión exitoso");
+                // Aquí puedes redirigir al usuario a otra página después de iniciar sesión
+                navigate("/home"); // Redirige a la página principal o a donde quieras
+            })
+            .catch((error) => {
+                console.error("Error al iniciar sesión:", error);
+                alert("Error al iniciar sesión. Verifica tus credenciales.");
+            }
+            )
+      
         // Redirige a la página WindowPrincipal
         navigate("/principal");
+
     };
 
     const handleSignUpRedirect = () => {

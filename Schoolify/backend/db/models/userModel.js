@@ -8,7 +8,10 @@ const userSchema = new mongoose.Schema({
   password:  { type: String, required: true },  // Hashed password
   salt:      { type: String, required: true },  // Store salt separately
   birthDate: { type: String, required: true },
-  profilePicture: { type: Buffer, contentType: String },
+  profilePicture: {
+    data: Buffer,
+    contentType: String
+  },
   createdAt: { type: Date, default: Date.now }
 });
 
