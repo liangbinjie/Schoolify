@@ -123,5 +123,18 @@ userRouter.delete("/:id", async (req, res) => {
   }
 });
 
+userRouter.get("/me", async (req, res) => {
+  try {
+    const userId = req.user.id; // Asegúrate de que el middleware de autenticación agregue el ID del usuario al objeto `req`
+    const user = await User.findById(userId).select("-password -salt");
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    res.status(200).json(user);
+  } catch (err) {
+    console.error("Error fetching user:", err);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
 
 export default userRouter;

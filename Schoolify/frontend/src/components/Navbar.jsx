@@ -30,35 +30,11 @@ function Navbar() {
                   Home
                 </a>
               </li>
-              {isOnPrincipal && (
-                <>
-                  <li className="nav-item">
-                    <a className="nav-link" href="/explorar">
-                      Explorar
-                    </a>
-                  </li>
-                  <li className="nav-item">
-                    <a className="nav-link" href="/amigos">
-                      Amigos
-                    </a>
-                  </li>
-                  <li className="nav-item">
-                    <a className="nav-link" href="/crear-curso">
-                      Crear Curso
-                    </a>
-                  </li>
-                  {/* Buscador a la par de "Crear Curso" */}
-                  <li className="nav-item">
-                    <input
-                      type="text"
-                      className="form-control"
-                      placeholder="Buscar..."
-                      aria-label="Buscar"
-                      style={{ maxWidth: "200px", marginLeft: "15px" }} // Ajusta el tamaño y separación
-                    />
-                  </li>
-                </>
-              )}
+              <li className="nav-item">
+                <a className="nav-link" href="#">
+                  Link
+                </a>
+              </li>
             </ul>
 
             {/* Menú desplegable "YO" alineado a la derecha */}
