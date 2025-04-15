@@ -73,7 +73,7 @@ userRouter.post("/", upload.single("profilePicture"), async (req, res) => {
       profilePicture: profilePictureFile ? {
         data: profilePictureFile.buffer,
         contentType: profilePictureFile.mimetype
-      } : undefined
+      } : null
     });
 
     await newUser.save();

@@ -49,7 +49,8 @@ authRouter.post("/login", async (req, res) => {
         username: user.username,
         email: user.email,
         firstName: user.firstName,
-        lastName: user.lastName
+        lastName: user.lastName,
+        birthDate: user.birthDate
       }
     });
 
