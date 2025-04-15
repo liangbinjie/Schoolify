@@ -1,5 +1,8 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom"; // Importa useNavigate
+import { useNavigate } from "react-router-dom"; // Importa useNavigate\
+import axios from "axios";
+import { useAuth } from "../context/AuthProvider"; // Importa el contexto de autenticación
+
 
 function LoginPage() {
     const [formData, setFormData] = useState({
@@ -14,14 +17,38 @@ function LoginPage() {
         setFormData({ ...formData, [name]: value });
     };
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
+    const { login } = useAuth();
+
+    const handleSubmit = async (e) => {
+      e.preventDefault();
+    
+      try {
         // Aquí poner para verificar el usuario en la base de datos
         console.log("Intento de inicio de sesión:", formData);
+        const res = await axios.post("http://localhost:5000/login", {
+            emailOrUsername: formData.username, // supports email or username
+            password: formData.password
+          });
+      
+          const { token, user } = res.data;
+      
+          // Use AuthContext login to store token and user info
+          login(token, user);
+      
+          // Redirect to main page after login
+          navigate("/principal");
+        } catch (error) {
+          console.error("Login error:", error);
+          alert("Credenciales inválidas. Intenta nuevamente.");
+        }
     };
 
     const handleSignUpRedirect = () => {
         navigate("/signin"); // Redirige a la página de registro
+    };
+
+    const handleGoToPrincipal = () => {
+        navigate("/principal"); // Redirige a la página WindowPrincipal sin autenticación
     };
 
     return (
@@ -61,6 +88,7 @@ function LoginPage() {
                     >
                         No tengo usuario
                     </button>
+                  
                 </form>
             </div>
         </>
