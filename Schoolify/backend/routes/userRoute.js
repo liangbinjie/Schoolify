@@ -1,8 +1,13 @@
 import express from "express";
 import bcrypt from "bcrypt";
+import multer from "multer";
 import User from '../db/models/userModel.js'
 
 const userRouter = express.Router();
+
+// Set up multer for handling file uploads
+const storage = multer.memoryStorage(); // Store file in memory as Buffer
+const upload = multer({ storage });
 
 // ======================================================== CRUD operations for user ===================================================
 // get user by id
@@ -10,7 +15,7 @@ userRouter.get("/:id", async (req, res) => {
   const { id } = req.params;
 
   try {
-    const user = await User.findById(id).select("-password -salt"); // Exclude password and salt
+    const user = await User.findById(id).select("-password -salt -profilePicture"); // Exclude password and salt
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
@@ -33,8 +38,9 @@ userRouter.get("/", async (req, res) => {
 });
 
 // create USER post route
-userRouter.post("/", async (req, res) => {
-  const { firstName, lastName, email, username, password, birthDate, profilePicture } = req.body;
+userRouter.post("/", upload.single("profilePicture"), async (req, res) => {
+  const { firstName, lastName, email, username, password, birthDate } = req.body;
+  const profilePictureFile = req.file;
 
   if (!firstName || !lastName || !email || !username || !password || !birthDate) {
     return res.status(400).json({ message: "Please fill in all required fields" });
@@ -45,6 +51,10 @@ userRouter.post("/", async (req, res) => {
     const existing = await User.findOne({ $or: [{ email }, { username }] });
     if (existing) {
       return res.status(400).json({ message: "Email or username already exists" });
+    }
+
+    if (profilePictureFile.mimetype !== "image/jpeg" && profilePictureFile.mimetype !== "image/png") {
+      return res.status(400).json({ message: "Invalid file type. Only JPEG and PNG are allowed." });
     }
 
     // Manually generate salt and hash password
@@ -58,9 +68,12 @@ userRouter.post("/", async (req, res) => {
       email,
       username,
       password: hashedPassword,
-      salt, // Save salt separately
+      salt,
       birthDate,
-      profilePicture
+      profilePicture: profilePictureFile ? {
+        data: profilePictureFile.buffer,
+        contentType: profilePictureFile.mimetype
+      } : undefined
     });
 
     await newUser.save();
@@ -133,6 +146,24 @@ userRouter.get("/me", async (req, res) => {
     res.status(200).json(user);
   } catch (err) {
     console.error("Error fetching user:", err);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// get user pfp
+userRouter.get("/:id/profile-picture", async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+
+    if (!user || !user.profilePicture || !user.profilePicture.data) {
+      return res.status(404).json({ message: "Profile picture not found" });
+    }
+
+    res.set("Content-Type", user.profilePicture.contentType);
+    res.send(user.profilePicture.data);
+    
+  } catch (err) {
+    console.error("Error retrieving profile picture:", err);
     res.status(500).json({ message: "Internal server error" });
   }
 });
