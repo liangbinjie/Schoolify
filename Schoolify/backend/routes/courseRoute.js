@@ -185,4 +185,21 @@ courseRouter.delete("/:id", async (req, res) => {
     }
 });
 
+
+// Get student list of a course by id
+courseRouter.get("/:id/students", async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const course = await Course.findById(id, "studentList"); // Only fetch the studentList field
+        if (!course) {
+            return res.status(404).json({ message: "Course not found" });
+        }
+        res.status(200).json(course.studentList);
+    } catch (err) {
+        console.error("Error fetching student list:", err);
+        res.status(500).json({ message: "Internal server error" });
+    }
+});
+
 export default courseRouter;
