@@ -1,12 +1,13 @@
 import React from "react";
 import { useLocation } from "react-router-dom"; // Para detectar la ruta actual
 import { useAuth } from "../context/AuthProvider";
+import { useNavigate } from "react-router-dom"; // Para redirigir al usuario
 
 function Navbar() {
   const location = useLocation(); // Obtiene la ruta actual
   const isOnPrincipal = location.pathname === "/principal"; // Verifica si está en WindowPrincipal
 
-  const { logout } = useAuth();
+  const { logout, isAuthenticated } = useAuth();
 
   return (
     <>
@@ -33,7 +34,8 @@ function Navbar() {
                   Home
                 </a>
               </li>
-              {isOnPrincipal && (
+              
+              {isAuthenticated && (
                 <>
                   <li className="nav-item">
                     <a className="nav-link" href="/explorar">
@@ -65,7 +67,7 @@ function Navbar() {
             </ul>
 
             {/* Menú desplegable "YO" alineado a la derecha */}
-            {isOnPrincipal && (
+            {isAuthenticated && (
               <div className="dropdown ms-auto">
                 <button
                   className="btn btn-secondary dropdown-toggle"
@@ -93,14 +95,14 @@ function Navbar() {
                     </a>
                   </li>
                   <li>
-                    <a className="dropdown-item" href="/cerrar-sesion" onClick={logout}>
+                    <a className="dropdown-item" onClick={logout}>
                       Cerrar Sesión
                     </a>
                   </li>
                 </ul>
               </div>
             )}
-            {!isOnPrincipal && (
+            {!isAuthenticated && (
               <>
                 <a href="/login">
                   <button className="btn btn-info">Sign In</button>
