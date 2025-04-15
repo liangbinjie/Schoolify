@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom"; // Importa useNavigate
 import axios from "axios";
 
 function SignInPage() {
@@ -42,6 +43,7 @@ function SignInPage() {
               }
             });
             console.log("Success:", res.data);
+            navigate("/login"); // Redirect to login after successful registration
           } catch (err) {
             console.error("Upload error:", err.response?.data || err.message);
           }

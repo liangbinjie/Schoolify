@@ -34,16 +34,16 @@ authRouter.post("/login", async (req, res) => {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
-    // Create JWT token (optional)
+    // Create JWT 
     const token = jwt.sign(
       { userId: user._id, username: user.username },
       JWT_SECRET,
       { expiresIn: "7d" }
     );
 
-    res.status(200).json({
+    return res.status(200).json({
       message: "Login successful",
-      token, // optional, only if you're using JWT
+      token,
       user: {
         id: user._id,
         username: user.username,

@@ -7,6 +7,7 @@ import SignInPage from './pages/SignIn.jsx'
 import Profile from "./pages/EditProfile.jsx";
 import UserProfile from "./pages/UserProfile.jsx"
 import WindowPrincipal from './pages/WindowPrincipal.jsx';
+import { AuthRoute, NotAuthRoute } from "./context/AuthRoute.jsx";
 /* 
 
 Se define todo lo relacionado a rutas,
@@ -22,11 +23,15 @@ function App() {
         <Routes>
           <Route path="/" element={<Home/>} />
           <Route path="/home" element={<Home/>} />
-          <Route path="/login" element={<LoginPage/>} />
-          <Route path="/signin" element={<SignInPage/>} />
-          <Route path="/profile" element={<Profile/>}/>
-          <Route path="/userprofile" element={<UserProfile/>}/>
-          <Route path="/principal" element={<WindowPrincipal />} />
+          <Route element={<NotAuthRoute/>}>
+            <Route path="/login" element={<LoginPage/>} />
+            <Route path="/signin" element={<SignInPage/>} />
+          </Route>
+          <Route element={<AuthRoute/>}>
+            <Route path="/profile" element={<Profile/>}/>
+            <Route path="/userprofile" element={<UserProfile/>}/>
+            <Route path="/principal" element={<WindowPrincipal />} />
+          </Route>
         </Routes>
     </>
   )

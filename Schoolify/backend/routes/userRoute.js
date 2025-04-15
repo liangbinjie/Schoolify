@@ -65,8 +65,8 @@ userRouter.post("/", upload.single("profilePicture"), async (req, res) => {
     const newUser = new User({
       firstName,
       lastName,
-      email,
-      username,
+      email: email.toLowerCase(),
+      username: username.toLowerCase(),
       password: hashedPassword,
       salt,
       birthDate,

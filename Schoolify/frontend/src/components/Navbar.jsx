@@ -1,9 +1,12 @@
 import React from "react";
 import { useLocation } from "react-router-dom"; // Para detectar la ruta actual
+import { useAuth } from "../context/AuthProvider";
 
 function Navbar() {
   const location = useLocation(); // Obtiene la ruta actual
   const isOnPrincipal = location.pathname === "/principal"; // Verifica si está en WindowPrincipal
+
+  const { logout } = useAuth();
 
   return (
     <>
@@ -90,7 +93,7 @@ function Navbar() {
                     </a>
                   </li>
                   <li>
-                    <a className="dropdown-item" href="/cerrar-sesion">
+                    <a className="dropdown-item" href="/cerrar-sesion" onClick={logout}>
                       Cerrar Sesión
                     </a>
                   </li>
