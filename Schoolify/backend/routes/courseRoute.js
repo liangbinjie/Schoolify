@@ -1,32 +1,48 @@
 import express from "express";
-import bcrypt from "bcrypt";
-import Course from '../db/models/courseModel.js'
+import multer from "multer";
+import Course from "../db/models/courseModel.js";
 
 const courseRouter = express.Router();
 
-// get course by id
-courseRouter.get("/:id", async (req, res) => {
-    const { id } = req.params;
+// Set up multer for handling file uploads
+const storage = multer.memoryStorage(); // Store file in memory as Buffer
+const upload = multer({ storage });
 
+// create COURSE post route with image upload
+courseRouter.post("/", upload.single("image"), async (req, res) => {
     try {
-        const course = await Course.findById(id);
-        if (!course) {
-            return res.status(404).json({ message: "Course not found" });
+        const { code, name, description, startDate, endDate, teacher } = req.body;
+        const imageFile = req.file;
+
+        if (!code || !name || !description || !startDate || !endDate || !teacher) {
+            return res.status(400).json({ message: "Please fill in all required fields" });
         }
-        res.status(200).json(course);
-    } catch (err) {
-        console.error("Error fetching course:", err);
-        res.status(500).json({ message: "Internal server error" });
-    }
-});
 
-// get all courses
-courseRouter.get("/", async (req, res) => {
-    try {
-        const courses = await Course.find();
-        res.status(200).json(courses);
+        // Validate image file type
+        if (imageFile && imageFile.mimetype !== "image/jpeg" && imageFile.mimetype !== "image/png") {
+            return res.status(400).json({ message: "Invalid file type. Only JPEG and PNG are allowed." });
+        }
+
+        // Save course
+        const newCourse = new Course({
+            code,
+            name,
+            description,
+            startDate,
+            endDate,
+            image: imageFile ? {
+                data: imageFile.buffer,
+                contentType: imageFile.mimetype
+            } : null,
+            studentList: [],
+            teacher,
+            state: "in edition"
+        });
+
+        await newCourse.save();
+        res.status(201).json({ message: "Course created successfully", course: newCourse });
     } catch (err) {
-        console.error("Error fetching courses:", err);
+        console.error("Error creating course:", err);
         res.status(500).json({ message: "Internal server error" });
     }
 });
@@ -202,4 +218,32 @@ courseRouter.get("/:id/students", async (req, res) => {
     }
 });
 
+// Get course image by ID
+courseRouter.get("/:id/image", async (req, res) => {
+    try {
+        const course = await Course.findById(req.params.id);
+
+        if (!course || !course.image || !course.image.data) {
+            return res.status(404).json({ message: "Image not found" });
+        }
+
+        res.set("Content-Type", course.image.contentType);
+        res.send(course.image.data);
+
+    } catch (err) {
+        console.error("Error retrieving course image:", err);
+        res.status(500).json({ message: "Internal server error" });
+    }
+});
+
+// Obtener todos los cursos
+courseRouter.get("/", async (req, res) => {
+    try {
+        const courses = await Course.find(); // Obtiene todos los cursos de la base de datos
+        res.status(200).json(courses);
+    } catch (err) {
+        console.error("Error fetching courses:", err);
+        res.status(500).json({ message: "Internal server error" });
+    }
+});
 export default courseRouter;

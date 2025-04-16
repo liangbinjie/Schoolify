@@ -23,15 +23,18 @@ const tabSchema = new mongoose.Schema({
 }, { _id: true, timestamps: true });
 
 const courseSchema = new mongoose.Schema({
-    code: {type: String, required: true},
-    name: {type: String, required: true},
-    description: {type: String, required: true},
-    startDate: {type: Date, required: true}, // MM/DD/YYYY
-    endDate: {type: Date, default: undefined}, // MM/DD/YYYY
-    image: {type: String, required: true},
-    studentList: {type: Array, default: []},
-    teacher: {type: String, required: true},
-    state: {type: String, enum: ["active", "inactive", "in edition", "published"], default: "in edition", required: true},
+    code: { type: String, required: true },
+    name: { type: String, required: true },
+    description: { type: String, required: true },
+    startDate: { type: Date, required: true }, // MM/DD/YYYY
+    endDate: { type: Date, default: undefined }, // MM/DD/YYYY
+    image: {
+        data: Buffer, // Almacena la imagen como un buffer
+        contentType: String // Tipo de contenido (ej. "image/jpeg")
+    },
+    studentList: { type: Array, default: [] },
+    teacher: { type: String, required: true },
+    state: { type: String, enum: ["active", "inactive", "in edition", "published"], default: "in edition", required: true },
     tabs: [tabSchema] // Añadimos la propiedad tabs al esquema principal
 });
 
