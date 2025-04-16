@@ -1,15 +1,26 @@
 import React, { useState } from "react";
 import axios from "axios";
+import { useAuth } from "../context/AuthProvider"; // Importa el contexto de autenticación
 
 function ProfilePage() {
-    const user = JSON.parse(localStorage.getItem("user"));
+    const [isPasswordDisabled, setIsPasswordDisabled] = useState(true); // initially disabled
+
+    const handleTogglePasswordEdit = () => {
+      setIsPasswordDisabled(prev => !prev);
+      if (isPasswordDisabled) {
+        setFormData({ ...formData, password: "" }); // Clear password field when disabling edit
+      }
+    };
+
+    const auth = useAuth();
+    const user = auth.user;
 
     const [formData, setFormData] = useState({
         firstName: user.firstName,
         lastName: user.lastName,
         email: user.email,
         username: user.username,
-        password: "**********", // Contraseña oculta
+        password: "",
         birthDate: user.birthDate,
     });
 
@@ -31,6 +42,9 @@ function ProfilePage() {
         const data = new FormData();
 
         for (const key in formData) {
+            if (key === "password" && (!formData[key] || formData[key].trim() === "")) {
+                continue; // Skip appending password if it's empty
+            }
             data.append(key, formData[key]);
         }
 
@@ -124,7 +138,8 @@ function ProfilePage() {
                                 id="password"
                                 name="password"
                                 value={formData.password}
-                                disabled // Campo deshabilitado
+                                onChange={handleChange}
+                                disabled={isPasswordDisabled}
                             />
                         </div>
                         <button
@@ -135,8 +150,7 @@ function ProfilePage() {
                                 height: "calc(2.25rem + 2px)", // Altura igual al input (Bootstrap)
                                 alignSelf: "flex-end", // Alineación vertical
                             }}
-                            onClick={() => console.log("Cambiar contraseña")}
-                        >
+                            onClick={handleTogglePasswordEdit}>
                             Cambiar
                         </button>
                     </div>
