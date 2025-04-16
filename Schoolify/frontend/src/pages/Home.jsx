@@ -1,41 +1,96 @@
-function Home() {
-    return (
-        <>
-            <div className="container m-5 text-center">
-               
-                <h1 className="display-4 fw-bold mb-4">
-                    "El aprendizaje es el único tesoro que sigue a su dueño a todas partes."
-                </h1>
+import React from 'react';
+import projectLogo from '../img/projectlogo2.png';
+import Layout from '../components/Layout';
+import { useAuth } from '../context/AuthProvider'; // Importa el contexto de autenticación
 
-                <img
-                    src="/logo.svg"
-                    alt="Logo de Schoolify"
-                    className="mb-4"
-                    style={{ maxWidth: "200px" }}
+function Home() {
+    const { isAuthenticated } = useAuth(); // Obtén el estado de autenticación
+
+    const containerStyle = {
+        display: 'flex',
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        height: '100%', // Ocupa toda la altura disponible
+        padding: '40px 20px',
+        boxSizing: 'border-box', // Asegura que el padding no exceda el tamaño
+    };
+
+    const leftContainerStyle = {
+        maxWidth: '50%',
+        padding: '0 20px',
+    };
+
+    const rightContainerStyle = {
+        maxWidth: '50%',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+    };
+
+    const imageStyle = {
+        width: '40rem',
+        borderRadius: '10px',
+    };
+
+    const buttonContainerStyle = {
+        display: 'flex',
+        gap: '20px',
+        marginTop: '20px',
+    };
+
+    const buttonStyle = {
+        padding: '10px 20px',
+        fontSize: '1rem',
+        borderRadius: '5px',
+        border: 'none',
+        cursor: 'pointer',
+        width: '30rem', // Botones del mismo ancho que el texto
+    };
+
+    const signInButtonStyle = {
+        ...buttonStyle,
+        backgroundColor: '#007bff',
+        color: '#fff',
+    };
+
+    const signUpButtonStyle = {
+        ...buttonStyle,
+        backgroundColor: '#28a745',
+        color: '#fff',
+    };
+
+    return (
+        <Layout>
+            <div style={containerStyle}>
+                <div style={leftContainerStyle}>
+                    <h1>"El aprendizaje es el único tesoro que sigue a su dueño a todas partes."</h1>
+                    <p>
+                        Schoolify es un sistema diseñado para facilitar la interacción entre docentes y estudiantes. 
+                        Los docentes pueden crear cursos personalizados, mientras que los estudiantes tienen la posibilidad de matricularse y acceder a ellos fácilmente.
+                        Este proyecto utiliza múltiples bases de datos para garantizar un sistema robusto y eficiente, 
+                        explorando tecnologías avanzadas para la gestión de datos en un entorno educativo.
+                    </p>
+                    {!isAuthenticated && ( // Muestra los botones solo si el usuario no está autenticado
+                        <div style={buttonContainerStyle}>
+                            <a href="/login" style={{ textDecoration: 'none' }}>
+                                <button style={signInButtonStyle}>Iniciar Sesión</button>
+                            </a>
+                            <a href="/signin" style={{ textDecoration: 'none' }}>
+                                <button style={signUpButtonStyle}>Registrarse</button>
+                            </a>
+                        </div>
+                    )}
+                </div>
+                <div style={rightContainerStyle}>
+                    <img
+                        src={projectLogo}
+                        alt="Imagen representativa del proyecto"
+                        style={imageStyle}
                     />
-                <div className="d-flex justify-content-center gap-4">
-                    <a href="/login" className="btn btn-primary btn-lg">
-                        Sign In
-                    </a>
-                    <a href="/signin" className="btn btn-success btn-lg">
-                        Sign Up
-                    </a>
                 </div>
             </div>
-
-            {/* Pie de página */}
-            <footer className="text-center mt-5">
-                <p>Realizado por:</p>
-                <ul className="list-unstyled">
-                    <li>1- Nombre 1</li>
-                    <li>2- Nombre 2</li>
-                    <li>3- Nombre 3</li>
-                    <li>4- Nombre 4</li>
-                    <li>5- Nombre 5</li>
-                    <li>6- Nombre 6</li>
-                </ul>
-            </footer>
-        </>
+        </Layout>
     );
 }
 

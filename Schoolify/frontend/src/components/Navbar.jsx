@@ -2,6 +2,7 @@ import React from "react";
 import { useLocation } from "react-router-dom"; // Para detectar la ruta actual
 import { useAuth } from "../context/AuthProvider";
 import { useNavigate } from "react-router-dom"; // Para redirigir al usuario
+import projectLogo from "../img/projectlogo.png"; // Importa el logo
 
 function Navbar() {
   const location = useLocation(); // Obtiene la ruta actual
@@ -13,8 +14,13 @@ function Navbar() {
     <>
       <nav className="navbar navbar-expand-lg bg-body-tertiary">
         <div className="container-fluid">
-          <a className="navbar-brand" href="/">
-            SCHOOLIFY
+          {/* Logo del proyecto */}
+          <a className="navbar-brand d-flex align-items-center" href="/">
+            <img
+              src={projectLogo}
+              alt="Schoolify Logo"
+              style={{ height: "50px", marginRight: "10px" }} // Ajusta el tamaño del logo
+            />
           </a>
           <button
             className="navbar-toggler"
@@ -34,11 +40,11 @@ function Navbar() {
                   Home
                 </a>
               </li>
-              
+
               {isAuthenticated && (
                 <>
                   <li className="nav-item">
-                    <a className="nav-link" href="/explorar">
+                    <a className="nav-link" href="/principal">
                       Explorar
                     </a>
                   </li>
@@ -78,7 +84,10 @@ function Navbar() {
                 >
                   YO
                 </button>
-                <ul className="dropdown-menu dropdown-menu-end" aria-labelledby="dropdownMenuButton">
+                <ul
+                  className="dropdown-menu dropdown-menu-end"
+                  aria-labelledby="dropdownMenuButton"
+                >
                   <li>
                     <a className="dropdown-item" href="/profile">
                       Editar Información

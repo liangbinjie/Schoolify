@@ -1,0 +1,12 @@
+html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    overflow: hidden; /* Evita el scroll */
+}
+
+#root {
+    height: 100%; /* Asegura que el contenedor principal ocupe toda la ventana */
+    display: flex;
+    flex-direction: column;
+}

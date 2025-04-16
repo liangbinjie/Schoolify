@@ -8,7 +8,7 @@ import Profile from "./pages/EditProfile.jsx";
 import UserProfile from "./pages/UserProfile.jsx"
 import WindowPrincipal from './pages/WindowPrincipal.jsx';
 import { AuthRoute, NotAuthRoute } from "./context/AuthRoute.jsx";
-import Footer from './components/Footer.jsx';
+// import Footer from './components/Footer.jsx';
 /* 
 
 Se define todo lo relacionado a rutas,
@@ -18,7 +18,9 @@ Se define el "navbar" como un componente global en toda la app
 */
 
 function App() {
+  
   return (
+    
     <>
       <Navbar/>
         <Routes>
@@ -34,8 +36,8 @@ function App() {
             <Route path="/principal" element={<WindowPrincipal />} />
           </Route>
         </Routes>
-      <Footer />
     </>
+    
   )
 }
 
