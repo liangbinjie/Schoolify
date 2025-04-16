@@ -8,16 +8,27 @@ import fs from "fs";
 const tabsRouter = express.Router();
 
 // Obtener todos los tabs de un curso
-tabsRouter.get("/course/:courseId/tabs", async (req, res) => {
+tabsRouter.get("/courses/:courseId/tabs", async (req, res) => {
     try {
+        console.log("Obteniendo tabs para el curso:", req.params.courseId);
+
         const course = await Course.findById(req.params.courseId);
+        console.log("Curso encontrado:", course);
+
         if (!course) {
+            console.log("Curso no encontrado");
             return res.status(404).json({ message: "Curso no encontrado" });
         }
-        
+
+        if (!course.tabs || course.tabs.length === 0) {
+            console.log("El curso no tiene tabs");
+            return res.status(200).json([]);
+        }
+
         // Ordenamos los tabs por el campo order
         const sortedTabs = [...course.tabs].sort((a, b) => a.order - b.order);
-        
+        console.log("Tabs ordenados:", sortedTabs);
+
         res.status(200).json(sortedTabs);
     } catch (err) {
         console.error("Error al obtener tabs:", err);
@@ -26,7 +37,7 @@ tabsRouter.get("/course/:courseId/tabs", async (req, res) => {
 });
 
 // Crear un nuevo tab
-tabsRouter.post("/course/:courseId/tabs", async (req, res) => {
+tabsRouter.post("/courses/:courseId/tabs", async (req, res) => {
     try {
         const { title, description, order } = req.body;
         
@@ -72,7 +83,7 @@ tabsRouter.post("/course/:courseId/tabs", async (req, res) => {
 });
 
 // Actualizar un tab
-tabsRouter.put("/course/:courseId/tabs/:tabId", async (req, res) => {
+tabsRouter.put("/courses/:courseId/tabs/:tabId", async (req, res) => {
     try {
         const { title, description, order } = req.body;
         
@@ -118,7 +129,7 @@ tabsRouter.put("/course/:courseId/tabs/:tabId", async (req, res) => {
 });
 
 // Eliminar un tab
-tabsRouter.delete("/course/:courseId/tabs/:tabId", async (req, res) => {
+tabsRouter.delete("/courses/:courseId/tabs/:tabId", async (req, res) => {
     try {
         const course = await Course.findById(req.params.courseId);
         if (!course) {
@@ -153,7 +164,7 @@ tabsRouter.delete("/course/:courseId/tabs/:tabId", async (req, res) => {
 });
 
 // Agregar contenido de texto a un tab
-tabsRouter.post("/course/:courseId/tabs/:tabId/content/text", async (req, res) => {
+tabsRouter.post("/courses/:courseId/tabs/:tabId/content/text", async (req, res) => {
     try {
         const { title, description, content, order } = req.body;
         
@@ -194,7 +205,7 @@ tabsRouter.post("/course/:courseId/tabs/:tabId/content/text", async (req, res) =
 });
 
 // Subir un archivo (imagen, documento, video) a un tab
-tabsRouter.post("/course/:courseId/tabs/:tabId/content/file", upload.single('file'), async (req, res) => {
+tabsRouter.post("/courses/:courseId/tabs/:tabId/content/file", upload.single('file'), async (req, res) => {
     try {
         if (!req.file) {
             return res.status(400).json({ message: "No se subió ningún archivo" });
@@ -264,7 +275,7 @@ tabsRouter.post("/course/:courseId/tabs/:tabId/content/file", upload.single('fil
 });
 
 // Agregar un enlace a un tab
-tabsRouter.post("/course/:courseId/tabs/:tabId/content/link", async (req, res) => {
+tabsRouter.post("/courses/:courseId/tabs/:tabId/content/link", async (req, res) => {
     try {
         const { title, description, url, order } = req.body;
         
@@ -305,7 +316,7 @@ tabsRouter.post("/course/:courseId/tabs/:tabId/content/link", async (req, res) =
 });
 
 // Eliminar contenido de un tab
-tabsRouter.delete("/course/:courseId/tabs/:tabId/content/:contentId", async (req, res) => {
+tabsRouter.delete("/courses/:courseId/tabs/:tabId/content/:contentId", async (req, res) => {
     try {
         const course = await Course.findById(req.params.courseId);
         if (!course) {

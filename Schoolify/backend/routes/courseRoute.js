@@ -246,4 +246,21 @@ courseRouter.get("/", async (req, res) => {
         res.status(500).json({ message: "Internal server error" });
     }
 });
+
+courseRouter.get("/:id", async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const course = await Course.findById(id);
+        if (!course) {
+            return res.status(404).json({ message: "Course not found" });
+        }
+        res.status(200).json(course);
+    } catch (err) {
+        console.error("Error fetching course:", err);
+        res.status(500).json({ message: "Internal server error" });
+    }
+});
+
 export default courseRouter;
+

@@ -7,6 +7,7 @@ import SignInPage from './pages/SignIn.jsx'
 import Profile from "./pages/EditProfile.jsx";
 import UserProfile from "./pages/UserProfile.jsx"
 import WindowPrincipal from './pages/WindowPrincipal.jsx';
+import CourseView from "./pages/CourseView.jsx";
 import { AuthRoute, NotAuthRoute } from "./context/AuthRoute.jsx";
 // import Footer from './components/Footer.jsx';
 /* 
@@ -34,6 +35,7 @@ function App() {
             <Route path="/profile" element={<Profile/>}/>
             <Route path="/userprofile" element={<UserProfile/>}/>
             <Route path="/principal" element={<WindowPrincipal />} />
+            <Route path="/course/:id" element={<CourseView />} />
           </Route>
         </Routes>
     </>
