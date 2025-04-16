@@ -71,7 +71,8 @@ userRouter.post("/", upload.single("profilePicture"), async (req, res) => {
         contentType: profilePictureFile.mimetype
       } : null
     });
-
+    console.log("New user data:", newUser);
+    // Save the user to the database
     await newUser.save();
     res.status(201).json({ message: "User created", userId: newUser._id });
 
@@ -87,21 +88,30 @@ userRouter.put("/:id", upload.single("profilePicture"), async (req, res) => {
   const { firstName, lastName, email, username, password, birthDate } = req.body;
   const profilePictureFile = req.file;
 
-  try { 
-
-    // Update user
-    const updatedUser = await User.findByIdAndUpdate(id, {
+  try {
+    const updateFields = {
       firstName,
       lastName,
       email,
       username,
-      password,
       birthDate,
-      profilePicture: profilePictureFile ? {
+    };
+    
+    if (password && password.trim() !== "") {
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(password, salt);
+      updateFields.password = hashedPassword;
+      updateFields.salt = salt;
+    }
+
+    if (profilePictureFile) {
+      updateFields.profilePicture = {
         data: profilePictureFile.buffer,
-        contentType: profilePictureFile.mimetype
-      } : null
-    }, { new: true });
+        contentType: profilePictureFile.mimetype,
+      };
+    }
+    console.log("Update fields:", updateFields);
+    const updatedUser = await User.findByIdAndUpdate(id, updateFields, { new: true });
 
     if (!updatedUser) {
       return res.status(404).json({ message: "User not found" });
@@ -114,6 +124,7 @@ userRouter.put("/:id", upload.single("profilePicture"), async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 });
+
 
 // delete user
 userRouter.delete("/:id", async (req, res) => {

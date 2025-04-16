@@ -50,7 +50,8 @@ authRouter.post("/login", async (req, res) => {
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
-        birthDate: user.birthDate
+        birthDate: user.birthDate,
+        password: user.password,
       }
     });
 
