@@ -95,7 +95,7 @@ function Navbar() {
                     </a>
                   </li>
                   <li>
-                    <a className="dropdown-item" onClick={logout}>
+                    <a className="dropdown-item" href="/" onClick={logout}>
                       Cerrar Sesión
                     </a>
                   </li>

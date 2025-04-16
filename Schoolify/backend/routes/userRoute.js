@@ -53,10 +53,6 @@ userRouter.post("/", upload.single("profilePicture"), async (req, res) => {
       return res.status(400).json({ message: "Email or username already exists" });
     }
 
-    if (profilePictureFile.mimetype !== "image/jpeg" && profilePictureFile.mimetype !== "image/png") {
-      return res.status(400).json({ message: "Invalid file type. Only JPEG and PNG are allowed." });
-    }
-
     // Manually generate salt and hash password
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
@@ -86,16 +82,12 @@ userRouter.post("/", upload.single("profilePicture"), async (req, res) => {
 });
 
 // update user
-userRouter.put("/:id", async (req, res) => {
+userRouter.put("/:id", upload.single("profilePicture"), async (req, res) => {
   const { id } = req.params;
-  const { firstName, lastName, email, username, password, birthDate, profilePicture } = req.body;
+  const { firstName, lastName, email, username, password, birthDate } = req.body;
+  const profilePictureFile = req.file;
 
-  try {
-    // Check for existing user
-    const existing = await User.findOne({ $or: [{ email }, { username }] });
-    if (existing && existing._id.toString() !== id) {
-      return res.status(400).json({ message: "Email or username already exists" });
-    }
+  try { 
 
     // Update user
     const updatedUser = await User.findByIdAndUpdate(id, {
@@ -105,7 +97,10 @@ userRouter.put("/:id", async (req, res) => {
       username,
       password,
       birthDate,
-      profilePicture
+      profilePicture: profilePictureFile ? {
+        data: profilePictureFile.buffer,
+        contentType: profilePictureFile.mimetype
+      } : null
     }, { new: true });
 
     if (!updatedUser) {

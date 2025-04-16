@@ -1,39 +1,57 @@
 import React, { useState } from "react";
+import axios from "axios";
 
 function ProfilePage() {
+    const user = JSON.parse(localStorage.getItem("user"));
+
     const [formData, setFormData] = useState({
-        firstName: "",
-        lastName: "",
-        email: "",
-        username: "",
-        password: "", // Contraseña oculta
-        birthDate: "",
-        avatar: null,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        username: user.username,
+        password: "**********", // Contraseña oculta
+        birthDate: user.birthDate,
     });
 
+    const [profilePicture, setProfilePicture] = useState(null); // Estado para la imagen de perfil
+    
+    const image = `http://localhost:5000/user/${user.id}/profile-picture`; // URL de la imagen de perfil
+
     const handleChange = (e) => {
-        const { name, value } = e.target;
-        setFormData({ ...formData, [name]: value });
+        setFormData({ ...formData, [e.target.name]: e.target.value });
     };
 
     const handleFileChange = (e) => {
-        setFormData({ ...formData, avatar: e.target.files[0] });
+        setProfilePicture(e.target.files[0]);
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
 
-        // Convertir la fecha a formato mm/dd/aaaa
-        const formattedDate = new Date(formData.birthDate).toLocaleDateString("en-US", {
-            month: "2-digit",
-            day: "2-digit",
-            year: "numeric",
-        });
+        const data = new FormData();
 
-        const dataToSubmit = { ...formData, birthDate: formattedDate };
+        for (const key in formData) {
+            data.append(key, formData[key]);
+        }
 
-        // Aquí enviarías los datos al backend para procesarlos
-        console.log("Datos enviados:", dataToSubmit);
+        // Append file if it exists
+        if (profilePicture) {
+            data.append("profilePicture", profilePicture); // Debe coincidir con el nombre del campo en el backend
+        }
+
+        try {
+            const res = await axios.put(`http://localhost:5000/user/${user.id}`, data, {
+              headers: {
+                "Content-Type": "multipart/form-data"
+              }
+            });
+            console.log("Success:", res.data);
+            alert("Perfil actualizado con éxito");
+            window.location.reload(); // Recargar la página para reflejar los cambios
+          } catch (err) {
+            console.error("Upload error:", err.response?.data || err.message);
+            alert("Error al actualizar el perfil, datos invalidos");
+          }
     };
 
     return (
@@ -41,29 +59,11 @@ function ProfilePage() {
             <div className="container" style={{ maxWidth: "500px", width: "100%" }}>
                 <div style={{ display: "flex", alignItems: "center", marginBottom: "20px" }}>
                     <div style={{ marginRight: "20px" }}>
-                        {formData.avatar ? (
-                            <img
-                                src={URL.createObjectURL(formData.avatar)}
-                                alt="Foto de perfil"
-                                style={{ width: "100px", height: "100px", borderRadius: "50%", objectFit: "cover" }}
-                            />
-                        ) : (
-                            <div
-                                style={{
-                                    width: "100px",
-                                    height: "100px",
-                                    borderRadius: "50%",
-                                    backgroundColor: "#ddd",
-                                    display: "flex",
-                                    alignItems: "center",
-                                    justifyContent: "center",
-                                    fontSize: "14px",
-                                    color: "#555",
-                                }}
-                            >
-                                Sin Foto
-                            </div>
-                        )}
+                        <img
+                            src={image}
+                            alt="Foto de perfil"
+                            style={{ width: "100px", height: "100px", borderRadius: "50%", objectFit: "cover" }}
+                        />
                     </div>
                     <h1>Perfil de Usuario</h1>
                 </div>
@@ -112,7 +112,7 @@ function ProfilePage() {
                             name="username"
                             value={formData.username}
                             onChange={handleChange}
-                            required
+                            disabled // Campo deshabilitado
                         />
                     </div>
                     <div className="mb-3" style={{ display: "flex", alignItems: "center" }}>
@@ -160,6 +160,7 @@ function ProfilePage() {
                             id="avatar"
                             name="avatar"
                             onChange={handleFileChange}
+                            accept="image/*" // Acepta solo imágenes
                         />
                     </div>
                     <button type="submit" className="btn btn-primary w-100">Guardar Cambios</button>

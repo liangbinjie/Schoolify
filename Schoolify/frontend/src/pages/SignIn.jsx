@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom"; // Importa useNavigate
 import axios from "axios";
 
 function SignInPage() {
+    const navigate = useNavigate();
+
     const [formData, setFormData] = useState({
         firstName: "",
         lastName: "",
@@ -29,13 +31,13 @@ function SignInPage() {
 
         for (const key in formData) {
             data.append(key, formData[key]);
-          }
+        }
       
           // Append file
           if (profilePicture) {
             data.append("profilePicture", profilePicture); // must match backend field name
           }
-      
+
           try {
             const res = await axios.post("http://localhost:5000/user", data, {
               headers: {
@@ -47,7 +49,6 @@ function SignInPage() {
           } catch (err) {
             console.error("Upload error:", err.response?.data || err.message);
           }
-
     };
 
     return (
@@ -128,14 +129,15 @@ function SignInPage() {
                         />
                     </div>
                     <div className="mb-3">
-                        <label htmlFor="avatar" className="form-label">Foto o Avatar</label>
+                        <label htmlFor="profilePicture" className="form-label">Foto o Avatar</label>
                         <input
                             type="file"
                             className="form-control"
-                            id="avatar"
-                            name="avatar"
+                            id="profilePicture"
+                            name="profilePicture"
+                            accept="image/*" // Acepta solo imágenes
                             onChange={handleFileChange}
-                            required
+                            // required
                         />
                     </div>
                     <button type="submit" className="btn btn-primary">Registrarse</button>
