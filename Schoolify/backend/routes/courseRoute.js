@@ -47,49 +47,6 @@ courseRouter.post("/", upload.single("image"), async (req, res) => {
     }
 });
 
-// create COURSE post route
-courseRouter.post("/", async (req, res) => {
-    const { code, name, description, startDate, endDate, image, studentList, teacher } = req.body;
-
-    if (!code || !name || !description || !startDate || !endDate || !image || !teacher) {
-        return res.status(400).json({ message: "Please fill in all required fields" });
-    }
-
-    try {
-        // This validation allows different teachers to create courses with the same code and name
-        // It only prevents a single teacher from creating duplicate courses with the same code and name
-        const existingCourseByTeacher = await Course.findOne({ 
-            code: code, 
-            name: name,
-            teacher: teacher 
-        });
-
-        if (existingCourseByTeacher) {
-            return res.status(400).json({ message: "You already have a course with this code and name" });
-        }
-
-        // Save course
-        const newCourse = new Course({
-            code,
-            name,
-            description,
-            startDate,
-            endDate,
-            image,
-            studentList: studentList || [], // Default to empty array if not provided
-            teacher,
-            state: "in edition" // Set default state to "in edition"
-        });
-
-        await newCourse.save();
-        res.status(201).json({ message: "Course created successfully", course: newCourse });
-
-    } catch (err) {
-        console.error("Error creating course:", err);
-        res.status(500).json({ message: "Internal server error" });
-    }
-});
-
 // Clone course route
 courseRouter.post("/clone/:id", async (req, res) => {
     const { id } = req.params;

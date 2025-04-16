@@ -8,6 +8,7 @@ import Profile from "./pages/EditProfile.jsx";
 import UserProfile from "./pages/UserProfile.jsx"
 import WindowPrincipal from './pages/WindowPrincipal.jsx';
 import CourseView from "./pages/CourseView.jsx";
+import CreateCourse from "./pages/CreateCourse.jsx";
 import { AuthRoute, NotAuthRoute } from "./context/AuthRoute.jsx";
 // import Footer from './components/Footer.jsx';
 /* 
@@ -36,6 +37,7 @@ function App() {
             <Route path="/userprofile" element={<UserProfile/>}/>
             <Route path="/principal" element={<WindowPrincipal />} />
             <Route path="/course/:id" element={<CourseView />} />
+            <Route path="/create-course" element={<CreateCourse />} />
           </Route>
         </Routes>
     </>
