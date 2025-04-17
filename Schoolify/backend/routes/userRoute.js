@@ -10,12 +10,13 @@ const storage = multer.memoryStorage(); // Store file in memory as Buffer
 const upload = multer({ storage });
 
 // ======================================================== CRUD operations for user ===================================================
-// get user by id
-userRouter.get("/:id", async (req, res) => {
-  const { id } = req.params;
+// get user by username
+userRouter.get("/:username", async (req, res) => {
+  console.log("GET USER CALL: ", req.params);
+  const { username } = req.params;
 
   try {
-    const user = await User.findById(id).select("-password -salt -profilePicture"); // Exclude password and salt
+    const user = await User.findOne({username: username}).select("-profilePicture -password -salt"); // Exclude password and salt
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
@@ -29,7 +30,7 @@ userRouter.get("/:id", async (req, res) => {
 // get all users
 userRouter.get("/", async (req, res) => {
   try {
-    const users = await User.find().select("-password -salt"); // Exclude password and salt
+    const users = await User.find().select("-password -salt -profilePicture"); // Exclude password and salt
     res.status(200).json(users);
   } catch (err) {
     console.error("Error fetching users:", err);
@@ -97,7 +98,7 @@ userRouter.put("/:id", upload.single("profilePicture"), async (req, res) => {
       birthDate,
     };
     
-    if (password && password.trim() !== "") {
+    if (password && password !== "") {
       const salt = await bcrypt.genSalt(10);
       const hashedPassword = await bcrypt.hash(password, salt);
       updateFields.password = hashedPassword;
@@ -117,7 +118,7 @@ userRouter.put("/:id", upload.single("profilePicture"), async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    res.status(200).json(updatedUser);
+    return res.status(200).json(updatedUser);
 
   } catch (err) {
     console.error("User update error:", err);
@@ -156,10 +157,11 @@ userRouter.get("/me", async (req, res) => {
   }
 });
 
-// get user pfp
-userRouter.get("/:id/profile-picture", async (req, res) => {
+// get user pfp by username
+userRouter.get("/:username/profile-picture", async (req, res) => {
   try {
-    const user = await User.findById(req.params.id);
+    const username = req.params.username;
+    const user = await User.findOne({username: username}).select("profilePicture");
 
     if (!user || !user.profilePicture || !user.profilePicture.data) {
       return res.status(404).json({ message: "Profile picture not found" });

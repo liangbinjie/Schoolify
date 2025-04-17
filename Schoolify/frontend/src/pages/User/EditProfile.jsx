@@ -1,20 +1,10 @@
 import React, { useState } from "react";
 import axios from "axios";
-import { useAuth } from "../context/AuthProvider"; // Importa el contexto de autenticación
+import { useAuth } from "../../context/AuthProvider";
 
 function ProfilePage() {
-    const [isPasswordDisabled, setIsPasswordDisabled] = useState(true); // initially disabled
-
-    const handleTogglePasswordEdit = () => {
-      setIsPasswordDisabled(prev => !prev);
-      if (isPasswordDisabled) {
-        setFormData({ ...formData, password: "" }); // Clear password field when disabling edit
-      }
-    };
-
-    const auth = useAuth();
-    const user = auth.user;
-
+    const [isPasswordDisabled, setIsPasswordDisabled] = useState(true); // Estado para habilitar/deshabilitar el campo de contraseña
+    const { user, updateUser } = useAuth(); // Obtener el usuario del contexto
     const [formData, setFormData] = useState({
         firstName: user.firstName,
         lastName: user.lastName,
@@ -23,11 +13,18 @@ function ProfilePage() {
         password: "",
         birthDate: user.birthDate,
     });
-
     const [profilePicture, setProfilePicture] = useState(null); // Estado para la imagen de perfil
-    
-    const image = `http://localhost:5000/user/${user.id}/profile-picture`; // URL de la imagen de perfil
+    const image = `http://localhost:5000/user/${user.username}/profile-picture`; // URL de la imagen de perfil
+    const updateURL = `http://localhost:5000/user/${user._id}` // URL para actualizar el perfil
 
+    // HANDLERS
+    const handleTogglePasswordEdit = () => {
+      setIsPasswordDisabled(prev => !prev);
+      if (isPasswordDisabled) {
+        setFormData({ ...formData, password: "" }); // Clear password field when disabling edit
+      }
+    };
+    
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
@@ -54,12 +51,13 @@ function ProfilePage() {
         }
 
         try {
-            const res = await axios.put(`http://localhost:5000/user/${user.id}`, data, {
+            const res = await axios.put(updateURL, data, {
               headers: {
                 "Content-Type": "multipart/form-data"
               }
             });
             console.log("Success:", res.data);
+            updateUser(res.data); // Actualiza el contexto de usuario
             alert("Perfil actualizado con éxito");
             window.location.reload(); // Recargar la página para reflejar los cambios
           } catch (err) {
@@ -140,6 +138,7 @@ function ProfilePage() {
                                 value={formData.password}
                                 onChange={handleChange}
                                 disabled={isPasswordDisabled}
+                                required
                             />
                         </div>
                         <button

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom"; // Importa useNavigate\
 import axios from "axios";
-import { useAuth } from "../context/AuthProvider"; // Importa el contexto de autenticación
+import { useAuth } from "../../context/AuthProvider"; // Importa el contexto de autenticación
 
 
 function LoginPage() {
@@ -29,11 +29,9 @@ function LoginPage() {
             emailOrUsername: formData.username, // supports email or username
             password: formData.password
           });
-      
-          const { token, user } = res.data;
-      
+          console.log("Respuesta del servidor:", res.data.user);
           // Use AuthContext login to store token and user info
-          login(token, user);
+          login(res.data.token, res.data.user);
       
           // Redirect to main page after login
           navigate("/principal");

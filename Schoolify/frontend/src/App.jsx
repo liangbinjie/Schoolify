@@ -2,10 +2,10 @@ import { Routes, Route } from "react-router-dom";
 import './App.css'
 import Navbar from './components/Navbar.jsx'
 import Home from './pages/Home.jsx'
-import LoginPage from './pages/Login.jsx'
-import SignInPage from './pages/SignIn.jsx'
-import Profile from "./pages/EditProfile.jsx";
-import UserProfile from "./pages/UserProfile.jsx"
+import LoginPage from './pages/Auth/Login.jsx'
+import SignInPage from './pages/Auth/SignIn.jsx'
+import Profile from "./pages/User/EditProfile.jsx";
+import UserProfile from "./pages/User/UserProfile.jsx"
 import WindowPrincipal from './pages/WindowPrincipal.jsx';
 import CourseView from "./pages/CourseView.jsx";
 import CreateCourse from "./pages/CreateCourse.jsx";
@@ -34,7 +34,7 @@ function App() {
           </Route>
           <Route element={<AuthRoute/>}>
             <Route path="/profile" element={<Profile/>}/>
-            <Route path="/userprofile" element={<UserProfile/>}/>
+            <Route path="/user/:username" element={<UserProfile/>}/>
             <Route path="/principal" element={<WindowPrincipal />} />
             <Route path="/course/:id" element={<CourseView />} />
             <Route path="/create-course" element={<CreateCourse />} />

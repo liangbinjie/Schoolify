@@ -36,22 +36,22 @@ authRouter.post("/login", async (req, res) => {
 
     // Create JWT 
     const token = jwt.sign(
-      { userId: user._id, username: user.username },
+      { userId: user._id },
       JWT_SECRET,
-      { expiresIn: "7d" }
+      { expiresIn: "1d" }
     );
 
-    return res.status(200).json({
+    res.status(200).json({
       message: "Login successful",
       token,
       user: {
-        id: user._id,
+        _id: user._id,
         username: user.username,
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
         birthDate: user.birthDate,
-        password: user.password,
+        // password: user.password,
       }
     });
 
