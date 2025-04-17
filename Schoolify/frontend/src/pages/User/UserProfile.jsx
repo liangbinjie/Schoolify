@@ -30,6 +30,21 @@ function UserProfile() {
     if (loading) return <p className="text-center m-5">Loading...</p>;
     if (!userProfile) return <h2 className="text-center m-5">Usuario No Encontrado</h2>;
 
+    const sendFriendRequest = async (friendUsername) => {
+        try {
+            const response = await axios.post(`http://localhost:5000/api/friends/send-friend-request/${friendUsername}`, {
+                username: user.username,
+            });
+            console.log(response.data);
+    
+            // Update global context if needed
+            updateUser(response.data.user);
+    
+        } catch (error) {
+            console.error("Error sending friend request:", error);
+        }
+    }
+
     return (
         <div style={{ padding: "20px" }}>
             {/* Perfil de Usuario */}
@@ -67,12 +82,13 @@ function UserProfile() {
                     <p><strong>Nombre:</strong> {userProfile.firstName} {userProfile.lastName}</p>
                     <p><strong>Fecha de Nacimiento:</strong> {userProfile.birthDate}</p>
                     <p><strong>Correo Electrónico:</strong> {userProfile.email}</p>
-                    { userProfile.username === user.username ? (
+                    { userProfile.username === user.username || (user.friends && user.friends.includes(username)) ? (
                         <></>
                     ) : (
                         <button className="btn btn-primary" onClick={() => {
                             // Aquí puedes agregar la lógica para enviar la solicitud de amistad
                             alert("Solicitud de amistad enviada a " + username);
+                            sendFriendRequest(username);
                         }}>Enviar Solicitud de Amistad</button>
                     )} 
 

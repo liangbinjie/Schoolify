@@ -1,4 +1,5 @@
-import React, { createContext, useState, useEffect, useContext } from "react";
+import React, { createContext, useState, useEffect, useContext, useCallback } from "react";
+import axios from "axios";
 
 // Create the context
 const AuthContext = createContext();
@@ -33,10 +34,10 @@ export const AuthProvider = ({ children }) => {
     console.log(userData)
   };
 
-  const updateUser = (updatedUser) => {
+  const updateUser = useCallback((updatedUser) => {
     setUser(updatedUser);
     localStorage.setItem("user", JSON.stringify(updatedUser));
-  };
+  }, []);
 
   // Logout handler
   const logout = () => {
