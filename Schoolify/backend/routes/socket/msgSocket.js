@@ -1,4 +1,4 @@
-import redisCluster from "../db/redisCluster.js"; 
+import redisCluster from '../../db/redis.js';
 
 export default function setupSocketIO(io) {
   io.on("connection", (socket) => {
