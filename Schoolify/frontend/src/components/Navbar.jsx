@@ -72,7 +72,6 @@ function Navbar() {
             {isAuthenticated && (
               <>
               <div className="dropdown ms-auto">
-              <i class="bi bi-bell-fill p-3"></i>
                 <button
                   className="btn btn-secondary dropdown-toggle"
                   type="button"
@@ -89,6 +88,11 @@ function Navbar() {
                   <li>
                     <a className="dropdown-item" href="/profile">
                       Editar Información
+                    </a>
+                  </li>
+                  <li>
+                    <a className="dropdown-item" href="/friend-requests">
+                      Solicitudes de Amistad
                     </a>
                   </li>
                   <li>

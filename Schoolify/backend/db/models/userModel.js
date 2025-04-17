@@ -12,7 +12,12 @@ const userSchema = new mongoose.Schema({
     data: Buffer,
     contentType: String
   },
-  createdAt: { type: Date, default: Date.now }
+  createdAt: { type: Date, default: Date.now },
+
+  friends: [String],  
+  receivedRequests: [ String ],
+  sentRequests: [ String ],
+
 });
 
 const User = mongoose.model("User", userSchema);
