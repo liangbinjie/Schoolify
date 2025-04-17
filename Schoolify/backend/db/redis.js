@@ -4,11 +4,11 @@ import Redis from 'ioredis';
 const redisCluster = new Redis.Cluster([
   {
     host: 'localhost',
-    port: 6379         // puerto del primer nodo
+    port: 6379         
   },
   {
     host: 'localhost',
-    port: 6380         // puerto del segundo nodo
+    port: 6379         
   }
 ], {
   redisOptions: {
