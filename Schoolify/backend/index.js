@@ -10,6 +10,7 @@ import evaluationRouter from "./routes/courseEvaluationsRoute.js";
 import authRouter from './routes/Auth/loginRoute.js';
 import friendRouter from './routes/friendRoute.js';
 import redisCluster from './db/redis.js';
+import setupSocketIO from './routes/socket/msgSocket.js';
 
 const PORT = process.env.PORT || 5000;
 const schoolify_uri = process.env.MONGO_SCHOOLIFY_DB_URI;
@@ -21,7 +22,7 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Make Redis cluster available in request object
+// Cluster de redis
 app.use((req, res, next) => {
     req.redisCluster = redisCluster;
     next();
@@ -44,7 +45,7 @@ app.get("/", (req, res) => {
 try {
     await connectMongoDB(schoolify_uri);
     
-    // Test Redis connection
+    // Probar conexion de redis
     await redisCluster.ping();
     console.log('Redis Cluster connection successful');
 
@@ -54,3 +55,4 @@ try {
 } catch (err) {
     console.log(err);
 }
+setupSocketIO(io);
