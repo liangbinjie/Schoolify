@@ -1,5 +1,5 @@
 import React from 'react';
-import projectLogo from '../img/projectlogo2.png';
+import projectLogo from '../assets/projectlogo2.png';
 import Layout from '../components/Layout';
 import { useAuth } from '../context/AuthProvider'; // Importa el contexto de autenticación
 

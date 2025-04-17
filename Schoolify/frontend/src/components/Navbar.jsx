@@ -1,13 +1,9 @@
 import React from "react";
-import { useLocation } from "react-router-dom"; // Para detectar la ruta actual
 import { useAuth } from "../context/AuthProvider";
 import { useNavigate } from "react-router-dom"; // Para redirigir al usuario
-import projectLogo from "../img/projectlogo.png"; // Importa el logo
+import projectLogo from "../assets/projectlogo.png"; // Importa el logo
 
 function Navbar() {
-  const location = useLocation(); // Obtiene la ruta actual
-  const isOnPrincipal = location.pathname === "/principal"; // Verifica si está en WindowPrincipal
-
   const { logout, isAuthenticated } = useAuth();
 
   return (
@@ -74,7 +70,9 @@ function Navbar() {
 
             {/* Menú desplegable "YO" alineado a la derecha */}
             {isAuthenticated && (
+              <>
               <div className="dropdown ms-auto">
+              <i class="bi bi-bell-fill p-3"></i>
                 <button
                   className="btn btn-secondary dropdown-toggle"
                   type="button"
@@ -110,6 +108,7 @@ function Navbar() {
                   </li>
                 </ul>
               </div>
+              </>
             )}
             {!isAuthenticated && (
               <>
