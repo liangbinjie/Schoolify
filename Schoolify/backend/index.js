@@ -1,5 +1,7 @@
 import express from 'express';
 import cors from 'cors';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
 import userRouter from './routes/userRoute.js';
 import courseRouter from './routes/courseRoute.js';
 import enrollmentRouter from './routes/enrollmentRoute.js';
@@ -9,22 +11,29 @@ import fileRouter from './routes/fileRoute.js';
 import evaluationRouter from "./routes/courseEvaluationsRoute.js";
 import authRouter from './routes/Auth/loginRoute.js';
 import friendRouter from './routes/friendRoute.js';
-import redisCluster from './db/redis.js';
+import redis from './db/redis.js';
 import setupSocketIO from './routes/socket/msgSocket.js';
 
 const PORT = process.env.PORT || 5000;
 const schoolify_uri = process.env.MONGO_SCHOOLIFY_DB_URI;
 
 const app = express();
+const httpServer = createServer(app);
+const io = new Server(httpServer, {
+  cors: {
+    origin: "http://localhost:5173", // Your frontend URL
+    methods: ["GET", "POST"]
+  }
+});
 
 // Middleware para analizar JSON y datos codificados en URL
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Cluster de redis
+// Redis middleware
 app.use((req, res, next) => {
-    req.redisCluster = redisCluster;
+    req.redis = redis;
     next();
 });
 
@@ -42,17 +51,19 @@ app.get("/", (req, res) => {
     return res.status(234).send("hello world");
 });
 
+// Setup Socket.IO
+setupSocketIO(io);
+
 try {
     await connectMongoDB(schoolify_uri);
     
-    // Probar conexion de redis
-    await redisCluster.ping();
-    console.log('Redis Cluster connection successful');
+    // Test Redis connection
+    await redis.ping();
+    console.log('Redis connection successful');
 
-    app.listen(PORT, () =>
+    httpServer.listen(PORT, () =>
         console.log(`Listening on port ${PORT}`)
     );
 } catch (err) {
     console.log(err);
 }
-setupSocketIO(io);

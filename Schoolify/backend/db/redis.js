@@ -1,33 +1,22 @@
 import Redis from 'ioredis';
 
-// Create a new Redis Cluster client
-const redisCluster = new Redis.Cluster([
-  {
-    host: 'localhost',
-    port: 6379         
-  },
-  {
-    host: 'localhost',
-    port: 6379         
-  }
-], {
-  redisOptions: {
-    enableReadyCheck: true,
-    maxRetriesPerRequest: 3,
-  },
-  clusterRetryStrategy: (times) => {
+// Create a new Redis client (single instance)
+const redis = new Redis({
+  host: 'localhost',
+  port: 6379,
+  retryStrategy: (times) => {
     const delay = Math.min(times * 50, 2000);
     return delay;
   }
 });
 
 // Error handling
-redisCluster.on('error', (err) => {
-  console.error('Redis Cluster Error:', err);
+redis.on('error', (err) => {
+  console.error('Redis Error:', err);
 });
 
-redisCluster.on('connect', () => {
-  console.log('Connected to Redis Cluster');
+redis.on('connect', () => {
+  console.log('Connected to Redis');
 });
 
-export default redisCluster; 
+export default redis; 

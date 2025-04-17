@@ -1,4 +1,4 @@
-import redisCluster from '../../db/redis.js';
+import redis from '../../db/redis.js';
 
 export default function setupSocketIO(io) {
   io.on("connection", (socket) => {
@@ -8,9 +8,9 @@ export default function setupSocketIO(io) {
       socket.join(roomId);
       console.log(`Socket ${socket.id} se unió a sala: ${roomId}`);
 
-      // Obtener historial de mensajes desde Redis Cluster
+      // Obtener historial de mensajes desde Redis
       try {
-        const messages = await redisCluster.lrange(`chat:${roomId}`, 0, -1);
+        const messages = await redis.lrange(`chat:${roomId}`, 0, -1);
         const parsed = messages.map((msg) => JSON.parse(msg));
         socket.emit("chatHistory", parsed);
       } catch (err) {
@@ -20,8 +20,8 @@ export default function setupSocketIO(io) {
 
     socket.on("sendMessage", async ({ roomId, message }) => {
       try {
-        // Guardar en Redis Cluster
-        await redisCluster.rpush(`chat:${roomId}`, JSON.stringify(message));
+        // Guardar en Redis
+        await redis.rpush(`chat:${roomId}`, JSON.stringify(message));
 
         // Emitir en tiempo real a todos los usuarios en esa sala
         io.to(roomId).emit("receiveMessage", message);
