@@ -1,2 +1,54 @@
 # Schoolify
 Proyecto Bases II 2025
+
+# Historias de Usuario - Schoolify
+
+## Autenticación y Perfil de Usuario
+- [x] **HU1**: Como usuario, debo poder auto registrarme en la plataforma.
+  - Campos requeridos:
+    - User name
+    - Password (encriptado)
+    - Salt (para encriptación)
+    - Nombre Completo
+    - Fecha de Nacimiento
+    - Foto/Avatar
+
+- [x] **HU2**: Como usuario, debo poder editar mi información y cambiarla.
+
+## Gestión de Cursos (Docente)
+- [ ] **HU3**: Como docente, debo poder crear un curso.
+  - Campos del curso:
+    - Código
+    - Nombre
+    - Descripción
+    - Fecha de Inicio
+    - Fecha de Fin (opcional)
+    - Foto
+
+- [ ] **HU4**: Como docente, debo poder agregar secciones/temas/subtemas a un curso.
+- [ ] **HU5**: Como docente, debo poder agregar contenido a las secciones (texto, documentos, videos, imágenes).
+- [ ] **HU6**: Como docente, debo poder crear evaluaciones (preguntas de selección única con fechas y calificación automática).
+- [ ] **HU7**: Como docente, debo poder publicar un curso (estados: edición, publicado, activo, cerrado).
+- [ ] **HU8**: Como docente, debo ver estudiantes matriculados y sus notas (promedio simple).
+- [ ] **HU9**: Como docente, debo gestionar consultas/respuestas de estudiantes.
+- [ ] **HU10**: Como docente, debo ver lista de mis cursos (activos, terminados).
+- [ ] **HU11**: Como docente, debo poder clonar un curso (copiar materiales, nuevo estado: edición).
+
+## Interacción Estudiantil
+- [ ] **HU12**: Como estudiante, debo buscar cursos publicados y ver su información.
+- [ ] **HU13**: Como estudiante, debo matricularme a un curso.
+- [ ] **HU14**: Como estudiante, debo ver lista de cursos matriculados.
+- [ ] **HU15**: Como estudiante, debo ver secciones/contenido de un curso.
+- [ ] **HU16**: Como estudiante, debo realizar evaluaciones y ver resultado inmediato.
+- [ ] **HU17**: Como estudiante, debo ver resultados de todas mis evaluaciones por curso.
+- [ ] **HU18**: Como estudiante, debo enviar consultas a docentes mediante mensajes.
+- [ ] **HU19**: Como estudiante, debo ver lista de otros estudiantes en el curso.
+
+## Red Social y Mensajería
+- [ ] **HU20**: Como usuario, debo poder hacerme amigo de otros usuarios (ver sus cursos como docente/estudiante, sin notas).
+- [ ] **HU21**: Como usuario, debo buscar otros usuarios en el sistema.
+- [ ] **HU22**: Como usuario, debo enviar/responder mensajes a otros usuarios.
+
+## Puntos Extra
+- [ ] **EXTRA1**: Adjuntar fotos/videos en mensajes entre usuarios (+5 pts).
+- [ ] **EXTRA2**: Instalar MongoDB en cluster Docker (2 nodos) (+10 pts).
