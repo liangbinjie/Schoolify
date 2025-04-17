@@ -137,7 +137,7 @@ function SignInPage() {
                             name="profilePicture"
                             accept="image/*" // Acepta solo imágenes
                             onChange={handleFileChange}
-                            // required
+                            required
                         />
                     </div>
                     <button type="submit" className="btn btn-primary">Registrarse</button>

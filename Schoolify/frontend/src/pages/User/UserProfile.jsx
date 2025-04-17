@@ -2,13 +2,14 @@ import React, { useState, useEffect } from "react";
 import NavbarUserProfile from "../../components/NavbarUserProfile";
 import { useParams } from 'react-router-dom';
 import axios from "axios";
+import { useAuth } from "../../context/AuthProvider"; // Importa el contexto de autenticación
 
 function UserProfile() {
     const { username } = useParams();
     const [userProfile, setUserProfile] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
     const [profilePicture, setProfilePicture] = useState(null);
+    const { user } = useAuth(); // Obtener el usuario del contexto
 
     const fetchUserData = async () => {
         try {
@@ -17,7 +18,6 @@ function UserProfile() {
             setProfilePicture(`http://localhost:5000/user/${username}/profile-picture`);
         } catch (err) {
             console.error("Error fetching user data:", err);
-            setError("User not found or error fetching data.");
         } finally {
             setLoading(false);
         }
@@ -27,9 +27,8 @@ function UserProfile() {
         fetchUserData();
     }, [username]);
 
-    if (loading) return <p>Loading...</p>;
-    if (error) return <p>{error}</p>;
-    if (!userProfile) return <p>No user data available.</p>;
+    if (loading) return <p className="text-center m-5">Loading...</p>;
+    if (!userProfile) return <h2 className="text-center m-5">Usuario No Encontrado</h2>;
 
     return (
         <div style={{ padding: "20px" }}>
@@ -64,10 +63,19 @@ function UserProfile() {
 
                 {/* Información del usuario */}
                 <div>
+                    <p><strong>Usuario: </strong> {username} </p>
                     <p><strong>Nombre:</strong> {userProfile.firstName} {userProfile.lastName}</p>
                     <p><strong>Fecha de Nacimiento:</strong> {userProfile.birthDate}</p>
                     <p><strong>Correo Electrónico:</strong> {userProfile.email}</p>
-                    <button className="btn btn-primary">Enviar Solicitud de Amistad</button>
+                    { userProfile.username === user.username ? (
+                        <></>
+                    ) : (
+                        <button className="btn btn-primary" onClick={() => {
+                            // Aquí puedes agregar la lógica para enviar la solicitud de amistad
+                            alert("Solicitud de amistad enviada a " + username);
+                        }}>Enviar Solicitud de Amistad</button>
+                    )} 
+
                 </div>
             </div>
 
