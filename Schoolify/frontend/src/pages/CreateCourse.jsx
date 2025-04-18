@@ -1,9 +1,11 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { useAuth } from "../context/AuthProvider"; // Importar el contexto de autenticación
 
 function CreateCourse() {
     const navigate = useNavigate();
+    const { user } = useAuth(); // Obtener el usuario autenticado
 
     const [formData, setFormData] = useState({
         code: "",
@@ -11,7 +13,7 @@ function CreateCourse() {
         description: "",
         startDate: "",
         endDate: "",
-        teacher: "",
+        teacher: user.firstName + " " + user.lastName, // Asignar automáticamente el nombre del usuario
     });
 
     const [courseImage, setCourseImage] = useState(null);
@@ -52,18 +54,30 @@ function CreateCourse() {
         }
 
         try {
+            // Crear el curso
             const res = await axios.post("http://localhost:5000/courses", data, {
                 headers: {
-                    "Content-Type": "multipart/form-data"
-                }
+                    "Content-Type": "multipart/form-data",
+                },
             });
-            
+
             console.log("Curso creado exitosamente:", res.data);
-            // Redirect to course view or course list
-            navigate(`/course/${res.data.course._id}`);
+
+            // Actualizar la lista de createdCourses del usuario
+            const courseId = res.data.course._id;
+            await axios.put(`http://localhost:5000/user/${user._id}/add-course`, {
+                courseId,
+            });
+
+            // Redirigir al curso creado
+            navigate(`/course/${courseId}`);
         } catch (err) {
             console.error("Error al crear curso:", err);
-            setError(err.response?.data?.message || "Error al crear el curso. Por favor, inténtelo de nuevo.");
+            console.log("Detalles del error:", err.response); // Agrega este log
+            setError(
+                err.response?.data?.message ||
+                    "Error al crear el curso. Por favor, inténtelo de nuevo."
+            );
         }
     };
 
@@ -156,9 +170,10 @@ function CreateCourse() {
                                 name="teacher"
                                 value={formData.teacher}
                                 onChange={handleChange}
+                                disabled // Este atributo deshabilita el campo
                                 required
                             />
-                            <small className="text-muted">Ingrese el nombre del profesor</small>
+                            <small className="text-muted">El nombre del profesor se asigna automáticamente</small>
                         </div>
                     </div>
                     

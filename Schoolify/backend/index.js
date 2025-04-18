@@ -14,14 +14,14 @@ import friendRouter from './routes/friendRoute.js';
 import redis from './db/redis.js';
 import setupSocketIO from './routes/socket/msgSocket.js';
 
-const PORT = process.env.PORT || 5173;
+const PORT = 5000;
 const schoolify_uri = process.env.MONGO_SCHOOLIFY_DB_URI;
 
 const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
   cors: {
-    origin: "http://localhost:5173", // Your frontend URL
+    origin: "http://localhost:5000", // Your frontend URL
     methods: ["GET", "POST"]
   }
 });

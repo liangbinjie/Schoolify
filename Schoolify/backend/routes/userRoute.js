@@ -126,6 +126,29 @@ userRouter.put("/:id", upload.single("profilePicture"), async (req, res) => {
   }
 });
 
+// add course to user's createdCourses
+userRouter.put("/:id/add-course", async (req, res) => {
+    const { id } = req.params; // ID del usuario
+    const { courseId } = req.body; // ID del curso
+
+    try {
+        const user = await User.findById(id);
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        // Agregar el ID del curso a la lista createdCourses si no está presente
+        if (!user.createdCourses.includes(courseId)) {
+            user.createdCourses.push(courseId);
+            await user.save();
+        }
+
+        res.status(200).json({ message: "Course added to createdCourses" });
+    } catch (err) {
+        console.error("Error updating createdCourses:", err);
+        res.status(500).json({ message: "Internal server error" });
+    }
+});
 
 // delete user
 userRouter.delete("/:id", async (req, res) => {

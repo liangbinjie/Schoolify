@@ -1,6 +1,7 @@
 import express from "express";
 import multer from "multer";
 import Course from "../db/models/courseModel.js";
+import User from "../db/models/userModel.js";
 
 const courseRouter = express.Router();
 
@@ -18,12 +19,15 @@ courseRouter.post("/", upload.single("image"), async (req, res) => {
             return res.status(400).json({ message: "Please fill in all required fields" });
         }
 
-        // Validate image file type
-        if (imageFile && imageFile.mimetype !== "image/jpeg" && imageFile.mimetype !== "image/png") {
-            return res.status(400).json({ message: "Invalid file type. Only JPEG and PNG are allowed." });
+        // Find the user by teacher name
+        const [firstName, lastName] = teacher.split(" ");
+        const user = await User.findOne({ firstName, lastName });
+
+        if (!user) {
+            return res.status(404).json({ message: "Teacher not found" });
         }
 
-        // Save course
+        // Create the course
         const newCourse = new Course({
             code,
             name,
@@ -40,6 +44,11 @@ courseRouter.post("/", upload.single("image"), async (req, res) => {
         });
 
         await newCourse.save();
+
+        // Add the course ID to the user's createdCourses list
+        user.createdCourses.push(newCourse._id);
+        await user.save();
+
         res.status(201).json({ message: "Course created successfully", course: newCourse });
     } catch (err) {
         console.error("Error creating course:", err);
