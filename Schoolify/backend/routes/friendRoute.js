@@ -11,13 +11,11 @@ friendRouter.post("/send-friend-request/:friendUsername", async (req, res) => {
     console.log("Add Friend Request: ", { friendUsername, username });
 
     if (username === friendUsername) {
-        return res.status(400).json({ message: "You cannot send a friend request to yourself" });
+        return res.status(400).json({ message: "You cannot send a friend request to yourself"});
     }
 
     const myUser = await User.findOne({ username });
     const friendUser = await User.findOne({ username: friendUsername });
-
-
 
     if (!friendUser || !myUser) {
         return res.status(400).json({ message: "User not found" });
@@ -34,14 +32,11 @@ friendRouter.post("/send-friend-request/:friendUsername", async (req, res) => {
         return res.status(400).json({ message: "Friend request already sent" });
     }
 
-    console.log("myUser: ", myUser);
-    console.log("friendUser: ", friendUser);
     myUser.sentRequests.push(friendUsername);
     friendUser.receivedRequests.push(username);
     await myUser.save();
     await friendUser.save();
-    res.status(200).json({ message: "Friend request sent" });
-
+    res.status(200).json({ message: "Friend request sent", user: myUser });
 });
 
 // Decline a friend request
@@ -92,6 +87,30 @@ friendRouter.post("/accept-friend-request/:friendUsername", async (req, res) => 
     await myUser.save();
     await friendUser.save();
     res.status(200).json({ message: "Friend request accepted", user: myUser });
+});
+
+// Unfriend a user
+friendRouter.post("/unfriend/:friendUsername", async (req, res) => {
+    const { friendUsername } = req.params;
+    const { username } = req.body; // body contains the username of the user sending the request
+    
+    const myUser = await User.findOne({ username });
+    const friendUser = await User.findOne({ username: friendUsername });
+    
+    if (!friendUser || !myUser) {
+        return res.status(400).json({ message: "User not found" });
+    }
+    
+    if (!myUser.friends.includes(friendUsername)) {
+        return res.status(400).json({ message: "You are not friends with this user" });
+    }
+    
+    console.log("Unfriend: ", { friendUsername, username });
+    myUser.friends = myUser.friends.filter(user => user !== friendUsername);
+    friendUser.friends = friendUser.friends.filter(user => user !== username);
+    await myUser.save();
+    await friendUser.save();
+    res.status(200).json({ message: "Unfriended successfully", user: myUser });
 });
 
 
