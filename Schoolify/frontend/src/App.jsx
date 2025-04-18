@@ -13,6 +13,7 @@ import FriendRequests from "./pages/User/FriendRequets.jsx";
 import Friends from "./pages/User/Friends.jsx";
 import Messages from "./pages/User/Messages.jsx";
 import UserCourses from "./pages/User/UserCourses.jsx";
+import EditCourse from "./pages/User/EditCourse.jsx";
 import { AuthRoute, NotAuthRoute } from "./context/AuthRoute.jsx";
 import { useAuth } from "./context/AuthProvider";
 
@@ -41,6 +42,7 @@ function App() {
                     {user && (
                         <Route path="/cursos-creados" element={<UserCourses userId={user._id} />} />
                     )}
+                    <Route path="/edit-course/:courseId" element={<EditCourse />} />
                 </Route>
             </Routes>
         </>

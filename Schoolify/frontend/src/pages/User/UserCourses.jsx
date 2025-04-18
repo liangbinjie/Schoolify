@@ -20,9 +20,9 @@ function UserCourses({ userId }) {
     return (
         <div className="container my-5">
             <h1 className="display-4 fw-bold text-center mb-4">Mis Cursos Creados</h1>
-            <div className="row overflow-auto flex-nowrap" style={{ whiteSpace: "nowrap" }}>
+            <div className="row row-cols-1 row-cols-md-3 g-4">
                 {createdCourses.map((course) => (
-                    <div className="col-md-4 mb-4 d-inline-block" key={course._id} style={{ float: "none" }}>
+                    <div className="col" key={course._id}>
                         <div className="card h-100 shadow-sm">
                             <img
                                 src={`http://localhost:5000/courses/${course._id}/image`}
@@ -39,8 +39,8 @@ function UserCourses({ userId }) {
                                 <p className="text-muted">
                                     <small>Profesor: {course.teacher}</small>
                                 </p>
-                                <a href={`/course/${course._id}`} className="btn btn-primary">
-                                    Ver Curso
+                                <a href={`/edit-course/${course._id}`} className="btn btn-primary">
+                                    Editar
                                 </a>
                             </div>
                         </div>
