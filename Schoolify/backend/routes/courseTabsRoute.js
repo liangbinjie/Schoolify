@@ -368,4 +368,84 @@ tabsRouter.delete("/courses/:courseId/tabs/:tabId/content/:contentId", async (re
     }
 });
 
+// Crear un nuevo subtab (subtema)
+tabsRouter.post(
+    "/courses/:courseId/tabs/:tabId/subtabs",
+    memoryUpload.none(), // Procesar datos de tipo multipart/form-data sin archivos
+    async (req, res) => {
+        try {
+            console.log("Datos recibidos en req.body:", req.body);
+
+            const { title, description, order } = req.body;
+
+            const parentTab = await Tab.findById(req.params.tabId);
+            if (!parentTab) {
+                return res.status(404).json({ message: "Tab no encontrado" });
+            }
+
+            const newSubtab = {
+                title,
+                description: description || "",
+                order,
+            };
+
+            parentTab.subtabs.push(newSubtab);
+            await parentTab.save();
+
+            res.status(201).json({
+                message: "Subtema creado exitosamente",
+                subtab: newSubtab,
+            });
+        } catch (err) {
+            console.error("Error al crear subtema:", err);
+            res.status(500).json({ message: "Error interno del servidor" });
+        }
+    }
+);
+
+// Subir un archivo a un subtab
+tabsRouter.post(
+    "/courses/:courseId/tabs/:tabId/subtabs/:subtabId/content/file",
+    memoryUpload.single("file"), // Procesar un archivo
+    async (req, res) => {
+        try {
+            const { title, description, order } = req.body;
+
+            if (!req.file) {
+                return res.status(400).json({ message: "No se subió ningún archivo" });
+            }
+
+            const parentTab = await Tab.findById(req.params.tabId);
+            if (!parentTab) {
+                return res.status(404).json({ message: "Tab no encontrado" });
+            }
+
+            const subtab = parentTab.subtabs.id(req.params.subtabId);
+            if (!subtab) {
+                return res.status(404).json({ message: "Subtab no encontrado" });
+            }
+
+            const newContent = {
+                type: "file",
+                title: title || req.file.originalname,
+                description: description || "",
+                content: req.file.buffer.toString("base64"), // Guardar el archivo como base64
+                fileType: req.file.mimetype,
+                order: order || subtab.contents.length,
+            };
+
+            subtab.contents.push(newContent);
+            await parentTab.save();
+
+            res.status(201).json({
+                message: "Archivo subido exitosamente al subtab",
+                content: newContent,
+            });
+        } catch (err) {
+            console.error("Error al subir archivo al subtab:", err);
+            res.status(500).json({ message: "Error interno del servidor" });
+        }
+    }
+);
+
 export default tabsRouter;

@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 const contentSchema = new mongoose.Schema({
     type: {
         type: String,
-        enum: ["text", "image", "document", "video", "link", "file"], // Agregar "file" aquí
+        enum: ["text", "image", "document", "video", "link", "file"], // Tipos de contenido permitidos
         required: true,
     },
     title: { type: String, required: true },
@@ -20,6 +20,14 @@ const tabSchema = new mongoose.Schema({
     contents: [contentSchema], // Contenidos del tab
     parentTab: { type: mongoose.Schema.Types.ObjectId, ref: "Tab", default: null }, // Referencia al tab padre (para subtabs)
     course: { type: mongoose.Schema.Types.ObjectId, ref: "Course", required: true }, // Referencia al curso
+    subtabs: [
+        {
+            title: { type: String, required: true },
+            description: { type: String, default: "" },
+            order: { type: Number, required: true },
+            contents: [contentSchema], // Contenidos del subtab (archivos, texto, etc.)
+        },
+    ],
 }, { timestamps: true });
 
 const Tab = mongoose.model("Tab", tabSchema);
