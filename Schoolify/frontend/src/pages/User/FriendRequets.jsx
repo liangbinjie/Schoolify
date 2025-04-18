@@ -13,9 +13,11 @@ function FriendRequests() {
         }
     }, [user]);
 
-    user.receivedRequests.map((request) => (
-        console.log(request)
-    ))
+    if (user && user.receivedRequests) {
+        user.receivedRequests.map((request) => (
+            console.log(request)
+        ));
+    }
 
     const declineHandler = async (friendUsername) => {
         try {
