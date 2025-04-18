@@ -1,121 +1,150 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSocket } from '../context/SocketProvider';
 import { useAuth } from '../context/AuthProvider';
+import { Box, TextField, Button, Typography, Paper, Avatar } from '@mui/material';
+import { Send as SendIcon } from '@mui/icons-material';
 
-const MessageChat = ({ friendUsername, roomId }) => {
+const MessageChat = ({ selectedUser }) => {
+  const [message, setMessage] = useState('');
   const [messages, setMessages] = useState([]);
-  const [newMessage, setNewMessage] = useState('');
-  const [loading, setLoading] = useState(true);
+  const [isTyping, setIsTyping] = useState(false);
+  const typingTimeoutRef = useRef(null);
   const messagesEndRef = useRef(null);
+  const { socket, joinRoom, sendMessage, markAsRead, sendTypingIndicator, onChatHistory, onReceiveMessage, typingUsers } = useSocket();
   const { user } = useAuth();
-  const { joinRoom, sendMessage, onChatHistory, onReceiveMessage } = useSocket();
 
-  // Scroll to bottom of messages
+  const roomId = selectedUser ? [user._id, selectedUser._id].sort().join('-') : null;
+
+  useEffect(() => {
+    if (roomId) {
+      joinRoom(roomId);
+      markAsRead(roomId);
+
+      // Listen for chat history
+      onChatHistory((history) => {
+        setMessages(history);
+        scrollToBottom();
+      });
+
+      // Listen for new messages
+      onReceiveMessage((newMessage) => {
+        setMessages(prev => [...prev, newMessage]);
+        scrollToBottom();
+      });
+    }
+  }, [roomId]);
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  useEffect(() => {
-    if (roomId) {
-      setLoading(true);
-      
-      // Unirse a la sala de chat
-      joinRoom(roomId);
-      
-      // historial de chat
-      onChatHistory((history) => {
-        setMessages(history);
-        setLoading(false);
-      });
-      
-      // nuevos mensajes
-      onReceiveMessage((message) => {
-        setMessages((prevMessages) => [...prevMessages, message]);
-      });
-    }
-  }, [roomId, joinRoom, onChatHistory, onReceiveMessage]);
-
   const handleSendMessage = (e) => {
     e.preventDefault();
-    
-    if (newMessage.trim() && roomId) {
-      const messageData = {
-        sender: user.username,
-        receiver: friendUsername,
-        content: newMessage,
-        timestamp: new Date().toISOString()
-      };
-      
-      // Send the message
-      sendMessage(roomId, messageData);
-      
-      // Clear the input
-      setNewMessage('');
+    if (message.trim() && roomId) {
+      sendMessage(roomId, message);
+      setMessage('');
+      setIsTyping(false);
+      sendTypingIndicator(roomId, false);
     }
   };
 
-  if (loading) {
-    return <div className="text-center p-3">Cargando mensajes...</div>;
-  }
+  const handleTyping = () => {
+    if (!isTyping) {
+      setIsTyping(true);
+      sendTypingIndicator(roomId, true);
+    }
+
+    // Clear existing timeout
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
+    // Set new timeout
+    typingTimeoutRef.current = setTimeout(() => {
+      setIsTyping(false);
+      sendTypingIndicator(roomId, false);
+    }, 1000);
+  };
 
   return (
-    <div className="message-chat d-flex flex-column h-100">
-      <div className="chat-header p-3 border-bottom">
-        <h5 className="mb-0">Chatear con: {friendUsername}</h5>
-      </div>
-      
-      <div className="chat-messages flex-grow-1 p-3 overflow-auto" style={{ maxHeight: '400px' }}>
-        {messages.length === 0 ? (
-          <div className="text-center text-muted mt-4">
-            No hay mensajes aún. ¡Inicia la conversación!
-          </div>
-        ) : (
-          messages.map((message, index) => (
-            <div 
-              key={index} 
-              className={`message ${message.sender === user.username ? 'sent' : 'received'} mb-3`}
+    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <Paper elevation={3} sx={{ p: 2, mb: 2 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Avatar src={selectedUser?.profilePicture} alt={selectedUser?.username}>
+            {selectedUser?.username?.[0]?.toUpperCase()}
+          </Avatar>
+          <Box>
+            <Typography variant="h6">{selectedUser?.username}</Typography>
+            {typingUsers[selectedUser?.username] && (
+              <Typography variant="caption" color="textSecondary">
+                typing...
+              </Typography>
+            )}
+          </Box>
+        </Box>
+      </Paper>
+
+      <Box sx={{ flexGrow: 1, overflowY: 'auto', p: 2 }}>
+        {messages.map((msg, index) => (
+          <Box
+            key={index}
+            sx={{
+              display: 'flex',
+              justifyContent: msg.sender === user._id ? 'flex-end' : 'flex-start',
+              mb: 2
+            }}
+          >
+            <Paper
+              elevation={1}
+              sx={{
+                p: 2,
+                maxWidth: '70%',
+                bgcolor: msg.sender === user._id ? 'primary.main' : 'grey.100',
+                color: msg.sender === user._id ? 'white' : 'text.primary'
+              }}
             >
-              <div 
-                className={`message-bubble p-2 rounded ${
-                  message.sender === user.username 
-                    ? 'bg-primary text-white ms-auto' 
-                    : 'bg-light'
-                }`}
-                style={{ maxWidth: '75%' }}
-              >
-                <div className="message-content">{message.content}</div>
-                <small className="message-time text-muted">
-                  {new Date(message.timestamp).toLocaleTimeString([], { 
-                    hour: '2-digit', 
-                    minute: '2-digit' 
-                  })}
-                </small>
-              </div>
-            </div>
-          ))
-        )}
+              <Typography variant="body1">{msg.content}</Typography>
+              <Typography variant="caption" sx={{ display: 'block', mt: 1 }}>
+                {new Date(msg.timestamp).toLocaleTimeString()}
+              </Typography>
+            </Paper>
+          </Box>
+        ))}
         <div ref={messagesEndRef} />
-      </div>
-      
-      <form onSubmit={handleSendMessage} className="chat-input p-3 border-top">
-        <div className="input-group">
-          <input
-            type="text"
-            className="form-control"
-            placeholder="Type a message..."
-            value={newMessage}
-            onChange={(e) => setNewMessage(e.target.value)}
-          />
-          <button type="submit" className="btn btn-primary">
-            Send
-          </button>
-        </div>
-      </form>
-    </div>
+      </Box>
+
+      <Paper
+        component="form"
+        onSubmit={handleSendMessage}
+        sx={{
+          p: 2,
+          display: 'flex',
+          gap: 1,
+          borderTop: '1px solid',
+          borderColor: 'divider'
+        }}
+      >
+        <TextField
+          fullWidth
+          variant="outlined"
+          placeholder="Type a message..."
+          value={message}
+          onChange={(e) => {
+            setMessage(e.target.value);
+            handleTyping();
+          }}
+          size="small"
+        />
+        <Button
+          type="submit"
+          variant="contained"
+          endIcon={<SendIcon />}
+          disabled={!message.trim()}
+        >
+          Send
+        </Button>
+      </Paper>
+    </Box>
   );
 };
 

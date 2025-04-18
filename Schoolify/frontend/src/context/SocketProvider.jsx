@@ -6,6 +6,8 @@ const SocketContext = createContext();
 
 export const SocketProvider = ({ children }) => {
   const [socket, setSocket] = useState(null);
+  const [unreadMessages, setUnreadMessages] = useState([]);
+  const [typingUsers, setTypingUsers] = useState({});
   const { user, isAuthenticated } = useAuth();
 
   useEffect(() => {
@@ -25,6 +27,25 @@ export const SocketProvider = ({ children }) => {
 
       newSocket.on('disconnect', () => {
         console.log('Disconnected from socket server');
+      });
+
+      // Listen for new messages when not in the chat room
+      newSocket.on('newMessage', (message) => {
+        console.log('New message received:', message);
+        setUnreadMessages(prev => [...prev, message]);
+      });
+
+      // Listen for typing indicators
+      newSocket.on('userTyping', ({ username, isTyping }) => {
+        setTypingUsers(prev => ({
+          ...prev,
+          [username]: isTyping
+        }));
+      });
+
+      // Listen for read receipts
+      newSocket.on('messagesRead', ({ roomId, reader, timestamp }) => {
+        console.log(`Messages in room ${roomId} were read by ${reader} at ${timestamp}`);
       });
 
       setSocket(newSocket);
@@ -50,6 +71,20 @@ export const SocketProvider = ({ children }) => {
     }
   };
 
+  // Function to mark messages as read
+  const markAsRead = (roomId) => {
+    if (socket && user) {
+      socket.emit('markAsRead', { roomId, username: user.username });
+    }
+  };
+
+  // Function to send typing indicator
+  const sendTypingIndicator = (roomId, isTyping) => {
+    if (socket && user) {
+      socket.emit('typing', { roomId, username: user.username, isTyping });
+    }
+  };
+
   // Function to listen for chat history
   const onChatHistory = (callback) => {
     if (socket) {
@@ -64,14 +99,24 @@ export const SocketProvider = ({ children }) => {
     }
   };
 
+  // Function to clear unread messages
+  const clearUnreadMessages = (roomId) => {
+    setUnreadMessages(prev => prev.filter(msg => msg.roomId !== roomId));
+  };
+
   return (
     <SocketContext.Provider 
       value={{ 
         socket, 
         joinRoom, 
         sendMessage, 
+        markAsRead,
+        sendTypingIndicator,
         onChatHistory, 
-        onReceiveMessage 
+        onReceiveMessage,
+        unreadMessages,
+        clearUnreadMessages,
+        typingUsers
       }}
     >
       {children}
