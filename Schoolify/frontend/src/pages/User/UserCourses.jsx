@@ -3,6 +3,7 @@ import axios from "axios";
 
 function UserCourses({ userId }) {
     const [createdCourses, setCreatedCourses] = useState([]);
+    const [message, setMessage] = useState("");
 
     useEffect(() => {
         const fetchCreatedCourses = async () => {
@@ -17,9 +18,28 @@ function UserCourses({ userId }) {
         fetchCreatedCourses();
     }, [userId]);
 
+    const handlePublishCourse = async (courseId) => {
+        try {
+            const response = await axios.put(`http://localhost:5000/courses/${courseId}`, {
+                state: "published",
+            });
+            setMessage(`El curso se publicó exitosamente: ${response.data.message}`);
+            // Actualizar el estado local para reflejar el cambio
+            setCreatedCourses((prevCourses) =>
+                prevCourses.map((course) =>
+                    course._id === courseId ? { ...course, state: "published" } : course
+                )
+            );
+        } catch (error) {
+            console.error("Error publishing course:", error);
+            setMessage("Hubo un error al publicar el curso.");
+        }
+    };
+
     return (
         <div className="container my-5">
             <h1 className="display-4 fw-bold text-center mb-4">Mis Cursos Creados</h1>
+            {message && <div className="alert alert-info">{message}</div>}
             <div className="row row-cols-1 row-cols-md-3 g-4">
                 {createdCourses.map((course) => (
                     <div className="col" key={course._id}>
@@ -39,9 +59,17 @@ function UserCourses({ userId }) {
                                 <p className="text-muted">
                                     <small>Profesor: {course.teacher}</small>
                                 </p>
-                                <a href={`/edit-course/${course._id}`} className="btn btn-primary">
+                                <a href={`/edit-course/${course._id}`} className="btn btn-primary me-2">
                                     Editar
                                 </a>
+                                {course.state !== "published" && (
+                                    <button
+                                        className="btn btn-success"
+                                        onClick={() => handlePublishCourse(course._id)}
+                                    >
+                                        Publicar
+                                    </button>
+                                )}
                             </div>
                         </div>
                     </div>

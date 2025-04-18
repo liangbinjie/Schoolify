@@ -138,23 +138,19 @@ courseRouter.post("/clone/:id", async (req, res) => {
 courseRouter.put("/:id", upload.single("image"), async (req, res) => {
     const { name, code, description, startDate, endDate, state } = req.body;
 
-    if (!name || !code || !description || !startDate || !endDate || !state) {
-        return res.status(400).json({ message: "Todos los campos son obligatorios" });
-    }
-
     try {
         const course = await Course.findById(req.params.id);
         if (!course) {
             return res.status(404).json({ message: "Curso no encontrado" });
         }
 
-        // Actualizar los campos del curso
-        course.name = name;
-        course.code = code;
-        course.description = description;
-        course.startDate = new Date(startDate);
-        course.endDate = new Date(endDate);
-        course.state = state;
+        // Actualizar solo los campos enviados en el cuerpo de la solicitud
+        if (name) course.name = name;
+        if (code) course.code = code;
+        if (description) course.description = description;
+        if (startDate) course.startDate = new Date(startDate);
+        if (endDate) course.endDate = new Date(endDate);
+        if (state) course.state = state;
 
         // Si se envió una nueva imagen, actualízala
         if (req.file) {
@@ -165,7 +161,7 @@ courseRouter.put("/:id", upload.single("image"), async (req, res) => {
         }
 
         await course.save();
-        res.status(200).json({ message: "Curso actualizado con éxito" });
+        res.status(200).json({ message: "Curso actualizado con éxito", course });
     } catch (error) {
         console.error("Error al actualizar el curso:", error);
         res.status(500).json({ message: "Error interno del servidor" });

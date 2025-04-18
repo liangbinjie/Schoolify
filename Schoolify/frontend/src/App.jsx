@@ -1,4 +1,4 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import './App.css'
 import Navbar from './components/Navbar.jsx'
 import Home from './pages/Home.jsx'
@@ -39,8 +39,10 @@ function App() {
                     <Route path="/create-course" element={<CreateCourse />} />
                     <Route path="/amigos" element={<Friends />} />
                     <Route path="/messages" element={<Messages />} />
-                    {user && (
+                    {user ? (
                         <Route path="/cursos-creados" element={<UserCourses userId={user._id} />} />
+                    ) : (
+                        <Route path="/cursos-creados" element={<Navigate to="/login" />} />
                     )}
                     <Route path="/edit-course/:courseId" element={<EditCourse />} />
                 </Route>
