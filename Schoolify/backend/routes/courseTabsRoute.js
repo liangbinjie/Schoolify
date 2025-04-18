@@ -1,80 +1,77 @@
 import express from "express";
 import Course from '../db/models/courseModel.js';
 import File from '../db/models/fileModel.js';
+import Tab from "../db/models/tabModel.js";
 import upload from '../middleware/upload.js';
 import path from "path";
 import fs from "fs";
+import multer from "multer";
 
 const tabsRouter = express.Router();
+
+const memoryUpload = multer({ storage: multer.memoryStorage() });
 
 // Obtener todos los tabs de un curso
 tabsRouter.get("/courses/:courseId/tabs", async (req, res) => {
     try {
-        console.log("Obteniendo tabs para el curso:", req.params.courseId);
-
-        const course = await Course.findById(req.params.courseId);
-        console.log("Curso encontrado:", course);
+        // Buscar el curso y popular los tabs relacionados
+        const course = await Course.findById(req.params.courseId).populate("tabs");
 
         if (!course) {
-            console.log("Curso no encontrado");
             return res.status(404).json({ message: "Curso no encontrado" });
         }
 
+        // Verificar si el curso tiene tabs
         if (!course.tabs || course.tabs.length === 0) {
-            console.log("El curso no tiene tabs");
             return res.status(200).json([]);
         }
 
-        // Ordenamos los tabs por el campo order
-        const sortedTabs = [...course.tabs].sort((a, b) => a.order - b.order);
-        console.log("Tabs ordenados:", sortedTabs);
+        // Ordenar los tabs por el campo `order` (si existe)
+        const sortedTabs = course.tabs.sort((a, b) => a.order - b.order);
 
         res.status(200).json(sortedTabs);
     } catch (err) {
-        console.error("Error al obtener tabs:", err);
+        console.error("Error al obtener los tabs:", err);
         res.status(500).json({ message: "Error interno del servidor" });
     }
 });
 
 // Crear un nuevo tab
-tabsRouter.post("/courses/:courseId/tabs", async (req, res) => {
+tabsRouter.post("/courses/:courseId/tabs", memoryUpload.array("contents"), async (req, res) => {
     try {
         const { title, description, order } = req.body;
-        
+
         if (!title || order === undefined) {
             return res.status(400).json({ message: "Se requiere título y orden para el tab" });
         }
-        
+
         const course = await Course.findById(req.params.courseId);
         if (!course) {
             return res.status(404).json({ message: "Curso no encontrado" });
         }
-        
-        // Verificar si ya existe un tab con el mismo orden
-        const tabWithSameOrder = course.tabs.find(tab => tab.order === order);
-        if (tabWithSameOrder) {
-            // Mover todos los tabs con orden >= al nuevo orden un lugar hacia arriba
-            course.tabs.forEach(tab => {
-                if (tab.order >= order) {
-                    tab.order += 1;
-                }
-            });
-        }
-        
-        // Crear nuevo tab
+
+        // Procesar los archivos subidos
+        const files = req.files.map((file) => ({
+            type: "file",
+            title: file.originalname,
+            content: file.buffer.toString("base64"), // Guardar como base64 o en un sistema de almacenamiento
+            fileType: file.mimetype,
+        }));
+
+        // Crear el nuevo tab
         const newTab = {
             title,
             description: description || "",
             order,
-            contents: []
+            contents: files,
         };
-        
+
         course.tabs.push(newTab);
         await course.save();
-        
-        res.status(201).json({ 
-            message: "Tab creado exitosamente", 
-            tab: newTab 
+
+        res.status(201).json({
+            message: "Tab creado exitosamente",
+            tab: newTab,
         });
     } catch (err) {
         console.error("Error al crear tab:", err);

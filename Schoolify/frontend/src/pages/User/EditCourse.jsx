@@ -228,104 +228,226 @@ function GeneralSection({ courseId }) {
 
 function TopicsSection({ courseId }) {
     const [topics, setTopics] = useState([]);
-    const [newTopic, setNewTopic] = useState({
-        title: "",
-        description: "",
-        number: "",
-        contents: [],
-    });
+    const [newTopic, setNewTopic] = useState({ title: "", description: "", order: 1, contents: [] });
+    const [newSubtopic, setNewSubtopic] = useState({ title: "", description: "", order: 1, contents: [] });
+    const [expandedTopicId, setExpandedTopicId] = useState(null);
 
-    const handleInputChange = (e) => {
+    useEffect(() => {
+        const fetchTopics = async () => {
+            try {
+                const response = await axios.get(`http://localhost:5000/api/tabs/courses/${courseId}/tabs`);
+                setTopics(response.data);
+            } catch (error) {
+                console.error("Error al obtener los temas:", error);
+            }
+        };
+
+        fetchTopics();
+    }, [courseId]);
+
+    // Manejar cambios en el formulario de nuevo tema
+    const handleTopicInputChange = (e) => {
         const { name, value } = e.target;
         setNewTopic({ ...newTopic, [name]: value });
     };
 
-    const handleFileChange = (e) => {
+    const handleTopicFileChange = (e) => {
         const files = Array.from(e.target.files);
         setNewTopic({ ...newTopic, contents: [...newTopic.contents, ...files] });
     };
 
-    const addTopic = async () => {
+    // Guardar un nuevo tema
+    const saveTopic = async () => {
         try {
             const formData = new FormData();
             formData.append("title", newTopic.title);
             formData.append("description", newTopic.description);
-            formData.append("order", newTopic.number);
+            formData.append("order", newTopic.order);
             newTopic.contents.forEach((file) => formData.append("contents", file));
 
             const response = await axios.post(
-                `http://localhost:5000/courses/${courseId}/tabs`,
+                `http://localhost:5000/api/tabs/courses/${courseId}/tabs`,
                 formData,
                 { headers: { "Content-Type": "multipart/form-data" } }
             );
 
-            setTopics([...topics, response.data.tab]);
-            setNewTopic({
-                title: "",
-                description: "",
-                number: "",
-                contents: [],
-            });
+            setTopics([...topics, response.data]);
+            setNewTopic({ title: "", description: "", order: 1, contents: [] });
         } catch (error) {
-            console.error("Error al añadir el tema:", error);
+            console.error("Error al guardar el tema:", error);
         }
+    };
+
+    // Manejar cambios en el formulario de subtema
+    const handleSubtopicInputChange = (e) => {
+        const { name, value } = e.target;
+        setNewSubtopic({ ...newSubtopic, [name]: value });
+    };
+
+    const handleSubtopicFileChange = (e) => {
+        const files = Array.from(e.target.files);
+        setNewSubtopic({ ...newSubtopic, contents: [...newSubtopic.contents, ...files] });
+    };
+
+    // Guardar un nuevo subtema
+    const saveSubtopic = async (topicId) => {
+        try {
+            const formData = new FormData();
+            formData.append("title", newSubtopic.title);
+            formData.append("description", newSubtopic.description);
+            formData.append("order", newSubtopic.order);
+            newSubtopic.contents.forEach((file) => formData.append("contents", file));
+
+            const response = await axios.post(
+                `http://localhost:5000/api/tabs/courses/${courseId}/tabs/${topicId}/subtabs`,
+                formData,
+                { headers: { "Content-Type": "multipart/form-data" } }
+            );
+
+            setTopics(
+                topics.map((topic) =>
+                    topic._id === topicId
+                        ? { ...topic, subtabs: [...(topic.subtabs || []), response.data.subtab] }
+                        : topic
+                )
+            );
+
+            setNewSubtopic({ title: "", description: "", order: 1, contents: [] });
+        } catch (error) {
+            console.error("Error al guardar el subtema:", error);
+        }
+    };
+
+    const toggleTopic = (topicId) => {
+        setExpandedTopicId(expandedTopicId === topicId ? null : topicId);
     };
 
     return (
         <div>
             <h2>Temas</h2>
-            <div className="mb-4">
-                <h3>Nuevo Tema</h3>
-                <div className="mb-3">
-                    <label className="form-label">Título</label>
-                    <input
-                        type="text"
-                        className="form-control"
-                        name="title"
-                        value={newTopic.title}
-                        onChange={handleInputChange}
-                    />
+
+            {/* Formulario para añadir un nuevo tema */}
+            <div className="card mb-4">
+                <div className="card-header">Agregar Tema</div>
+                <div className="card-body">
+                    <div className="mb-3">
+                        <label className="form-label">Título</label>
+                        <input
+                            type="text"
+                            className="form-control"
+                            name="title"
+                            value={newTopic.title}
+                            onChange={handleTopicInputChange}
+                        />
+                    </div>
+                    <div className="mb-3">
+                        <label className="form-label">Descripción</label>
+                        <textarea
+                            className="form-control"
+                            name="description"
+                            value={newTopic.description}
+                            onChange={handleTopicInputChange}
+                        ></textarea>
+                    </div>
+                    <div className="mb-3">
+                        <label className="form-label">Orden</label>
+                        <input
+                            type="number"
+                            className="form-control"
+                            name="order"
+                            value={newTopic.order}
+                            onChange={handleTopicInputChange}
+                        />
+                    </div>
+                    <div className="mb-3">
+                        <label className="form-label">Contenido (Archivos)</label>
+                        <input
+                            type="file"
+                            className="form-control"
+                            multiple
+                            onChange={handleTopicFileChange}
+                        />
+                    </div>
+                    <button className="btn btn-primary" onClick={saveTopic}>
+                        Guardar Tema
+                    </button>
                 </div>
-                <div className="mb-3">
-                    <label className="form-label">Descripción</label>
-                    <textarea
-                        className="form-control"
-                        name="description"
-                        value={newTopic.description}
-                        onChange={handleInputChange}
-                    ></textarea>
-                </div>
-                <div className="mb-3">
-                    <label className="form-label">Número de Tema</label>
-                    <input
-                        type="number"
-                        className="form-control"
-                        name="number"
-                        value={newTopic.number}
-                        onChange={handleInputChange}
-                    />
-                </div>
-                <div className="mb-3">
-                    <label className="form-label">Contenido (Archivos)</label>
-                    <input
-                        type="file"
-                        className="form-control"
-                        multiple
-                        onChange={handleFileChange}
-                    />
-                </div>
-                <button className="btn btn-success" onClick={addTopic}>
-                    Guardar Tema
-                </button>
             </div>
-            <h4>Temas Existentes</h4>
-            <ul>
-                {topics.map((topic, index) => (
-                    <li key={index}>
-                        {topic.title} - {topic.description}
-                    </li>
-                ))}
-            </ul>
+
+            {/* Lista de temas */}
+            {topics.length > 0 ? (
+                topics.map((topic) => (
+                    <div key={topic._id} className="card mb-3">
+                        <div className="card-header d-flex justify-content-between">
+                            <span>{topic.title}</span>
+                            <button
+                                className="btn btn-link"
+                                onClick={() => toggleTopic(topic._id)}
+                            >
+                                {expandedTopicId === topic._id ? "Ocultar" : "Mostrar"}
+                            </button>
+                        </div>
+                        {expandedTopicId === topic._id && (
+                            <div className="card-body">
+                                <p>{topic.description}</p>
+                                <h5>Subtemas</h5>
+                                <ul>
+                                    {(topic.subtabs || []).map((subtab) => (
+                                        <li key={subtab._id}>{subtab.title}</li>
+                                    ))}
+                                </ul>
+                                <h6>Agregar Subtema</h6>
+                                <div className="mb-3">
+                                    <label className="form-label">Título</label>
+                                    <input
+                                        type="text"
+                                        className="form-control"
+                                        name="title"
+                                        value={newSubtopic.title}
+                                        onChange={handleSubtopicInputChange}
+                                    />
+                                </div>
+                                <div className="mb-3">
+                                    <label className="form-label">Descripción</label>
+                                    <textarea
+                                        className="form-control"
+                                        name="description"
+                                        value={newSubtopic.description}
+                                        onChange={handleSubtopicInputChange}
+                                    ></textarea>
+                                </div>
+                                <div className="mb-3">
+                                    <label className="form-label">Orden</label>
+                                    <input
+                                        type="number"
+                                        className="form-control"
+                                        name="order"
+                                        value={newSubtopic.order}
+                                        onChange={handleSubtopicInputChange}
+                                    />
+                                </div>
+                                <div className="mb-3">
+                                    <label className="form-label">Contenido (Archivos)</label>
+                                    <input
+                                        type="file"
+                                        className="form-control"
+                                        multiple
+                                        onChange={handleSubtopicFileChange}
+                                    />
+                                </div>
+                                <button
+                                    className="btn btn-success"
+                                    onClick={() => saveSubtopic(topic._id)}
+                                >
+                                    Guardar Subtema
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                ))
+            ) : (
+                <p>No hay temas disponibles.</p>
+            )}
         </div>
     );
 }
