@@ -16,6 +16,7 @@ function FriendRequests() {
         } catch (error) {
             console.error("Error fetching user data:", error);
         }
+    }, []);
     
     useEffect(() => {
         console.log("Fetching user data for:", user);
