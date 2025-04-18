@@ -28,7 +28,7 @@ function EditCourse() {
 
     return (
         <div className="container my-5">
-            <h1 className="text-center mb-4">Editando Curso {courseName}</h1>
+            <h1 className="text-center mb-4">Editando: {courseName}</h1>
 
             {/* Navbar de navegación */}
             <ul className="nav nav-tabs mb-4">
@@ -86,21 +86,36 @@ function GeneralSection({ courseId }) {
         state: "in edition",
         image: null,
     });
+    const [currentImageUrl, setCurrentImageUrl] = useState(null);
+    const [imageFileName, setImageFileName] = useState("");
 
     // Obtener los datos del curso al montar el componente
     useEffect(() => {
         const fetchCourseData = async () => {
             try {
                 const response = await axios.get(`http://localhost:5000/courses/${courseId}`);
+                const data = response.data;
+                
                 setCourseData({
-                    name: response.data.name,
-                    code: response.data.code,
-                    description: response.data.description,
-                    startDate: response.data.startDate.split("T")[0], // Formato de fecha
-                    endDate: response.data.endDate.split("T")[0], // Formato de fecha
-                    state: response.data.state,
-                    image: null, // Imagen no se carga aquí
+                    name: data.name,
+                    code: data.code,
+                    description: data.description,
+                    startDate: data.startDate ? data.startDate.split("T")[0] : "",
+                    endDate: data.endDate ? data.endDate.split("T")[0] : "",
+                    state: data.state,
+                    image: null,
                 });
+
+                // Verificar si el curso tiene una imagen
+                if (data.image && data.image.contentType) {
+                    // Añadir timestamp para evitar problemas de caché
+                    const imageUrl = `http://localhost:5000/courses/${courseId}/image?${new Date().getTime()}`;
+                    setCurrentImageUrl(imageUrl);
+                    
+                    // Crear un nombre de archivo sugerido para la descarga
+                    const extension = data.image.contentType.split('/')[1] || 'png';
+                    setImageFileName(`curso_${data.code}_imagen.${extension}`);
+                }
             } catch (error) {
                 console.error("Error al obtener los datos del curso:", error);
             }
@@ -115,7 +130,14 @@ function GeneralSection({ courseId }) {
     };
 
     const handleImageChange = (e) => {
-        setCourseData({ ...courseData, image: e.target.files[0] });
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            setCourseData({ ...courseData, image: file });
+            
+            // Crear una URL temporal para previsualizar la nueva imagen
+            setCurrentImageUrl(URL.createObjectURL(file));
+            setImageFileName(file.name);
+        }
     };
 
     const handleSave = async () => {
@@ -128,7 +150,7 @@ function GeneralSection({ courseId }) {
             formData.append("endDate", courseData.endDate);
             formData.append("state", courseData.state);
             if (courseData.image) {
-                formData.append("image", courseData.image); // Asegúrate de que la imagen se incluya
+                formData.append("image", courseData.image);
             }
 
             await axios.put(`http://localhost:5000/courses/${courseId}`, formData, {
@@ -136,9 +158,50 @@ function GeneralSection({ courseId }) {
             });
 
             alert("Curso actualizado con éxito");
-            navigate("/cursos-creados");
+            
+            // Actualizar la URL de la imagen después de guardar
+            if (courseData.image) {
+                const newImageUrl = `http://localhost:5000/courses/${courseId}/image?${new Date().getTime()}`;
+                setCurrentImageUrl(newImageUrl);
+                // Limpiar el estado del archivo después de guardar
+                setCourseData(prev => ({...prev, image: null}));
+            }
         } catch (error) {
             console.error("Error al actualizar el curso:", error);
+        }
+    };
+
+    const downloadImage = async () => {
+        try {
+            // Hacer la solicitud para obtener la imagen
+            const response = await fetch(`http://localhost:5000/courses/${courseId}/image`);
+            
+            if (!response.ok) {
+                throw new Error('Error al descargar la imagen');
+            }
+            
+            // Convertir la respuesta a un blob
+            const blob = await response.blob();
+            
+            // Crear una URL para el blob
+            const blobUrl = URL.createObjectURL(blob);
+            
+            // Crear un elemento <a> temporal
+            const link = document.createElement('a');
+            link.href = blobUrl;
+            link.download = imageFileName; // Usar el nombre de archivo que ya tenemos
+            
+            // Simular un clic en el enlace para forzar la descarga
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            // Liberar la URL del blob cuando ya no sea necesaria
+            setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
+            
+        } catch (error) {
+            console.error('Error al descargar la imagen:', error);
+            alert('No se pudo descargar la imagen');
         }
     };
 
@@ -211,12 +274,41 @@ function GeneralSection({ courseId }) {
                 </div>
                 <div className="mb-3">
                     <label className="form-label">Imagen del Curso</label>
+                    
+                    {/* Mostrar la imagen actual si existe */}
+                    {currentImageUrl && (
+                        <div className="mb-3">
+                            <img 
+                                src={currentImageUrl} 
+                                alt="Imagen del curso" 
+                                style={{
+                                    maxWidth: "200px", 
+                                    maxHeight: "150px", 
+                                    display: "block",
+                                    marginBottom: "10px"
+                                }} 
+                            />
+                        </div>
+                    )}
+                    
                     <input
                         type="file"
-                        className="form-control"
+                        className="form-control mb-2"
                         name="image"
+                        accept="image/*"
                         onChange={handleImageChange}
                     />
+                    
+                    {/* Botón de descarga si hay una imagen guardada */}
+                    {currentImageUrl && !courseData.image && (
+                        <button 
+                            onClick={downloadImage}
+                            className="btn btn-outline-primary btn-sm mb-3"
+                            type="button"
+                        >
+                            <i className="bi bi-download me-1"></i> Descargar imagen actual
+                        </button>
+                    )}
                 </div>
                 <button type="button" className="btn btn-primary" onClick={handleSave}>
                     Guardar Cambios
