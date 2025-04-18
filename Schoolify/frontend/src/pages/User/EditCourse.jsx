@@ -227,11 +227,105 @@ function GeneralSection({ courseId }) {
 }
 
 function TopicsSection({ courseId }) {
+    const [topics, setTopics] = useState([]);
+    const [newTopic, setNewTopic] = useState({
+        title: "",
+        description: "",
+        number: "",
+        contents: [],
+    });
+
+    const handleInputChange = (e) => {
+        const { name, value } = e.target;
+        setNewTopic({ ...newTopic, [name]: value });
+    };
+
+    const handleFileChange = (e) => {
+        const files = Array.from(e.target.files);
+        setNewTopic({ ...newTopic, contents: [...newTopic.contents, ...files] });
+    };
+
+    const addTopic = async () => {
+        try {
+            const formData = new FormData();
+            formData.append("title", newTopic.title);
+            formData.append("description", newTopic.description);
+            formData.append("order", newTopic.number);
+            newTopic.contents.forEach((file) => formData.append("contents", file));
+
+            const response = await axios.post(
+                `http://localhost:5000/courses/${courseId}/tabs`,
+                formData,
+                { headers: { "Content-Type": "multipart/form-data" } }
+            );
+
+            setTopics([...topics, response.data.tab]);
+            setNewTopic({
+                title: "",
+                description: "",
+                number: "",
+                contents: [],
+            });
+        } catch (error) {
+            console.error("Error al añadir el tema:", error);
+        }
+    };
+
     return (
         <div>
-            <h2>Temas y Subtemas</h2>
-            <p>Aquí podrás añadir temas, subtemas y archivos al curso.</p>
-            {/* Implementación futura */}
+            <h2>Temas</h2>
+            <div className="mb-4">
+                <h3>Nuevo Tema</h3>
+                <div className="mb-3">
+                    <label className="form-label">Título</label>
+                    <input
+                        type="text"
+                        className="form-control"
+                        name="title"
+                        value={newTopic.title}
+                        onChange={handleInputChange}
+                    />
+                </div>
+                <div className="mb-3">
+                    <label className="form-label">Descripción</label>
+                    <textarea
+                        className="form-control"
+                        name="description"
+                        value={newTopic.description}
+                        onChange={handleInputChange}
+                    ></textarea>
+                </div>
+                <div className="mb-3">
+                    <label className="form-label">Número de Tema</label>
+                    <input
+                        type="number"
+                        className="form-control"
+                        name="number"
+                        value={newTopic.number}
+                        onChange={handleInputChange}
+                    />
+                </div>
+                <div className="mb-3">
+                    <label className="form-label">Contenido (Archivos)</label>
+                    <input
+                        type="file"
+                        className="form-control"
+                        multiple
+                        onChange={handleFileChange}
+                    />
+                </div>
+                <button className="btn btn-success" onClick={addTopic}>
+                    Guardar Tema
+                </button>
+            </div>
+            <h4>Temas Existentes</h4>
+            <ul>
+                {topics.map((topic, index) => (
+                    <li key={index}>
+                        {topic.title} - {topic.description}
+                    </li>
+                ))}
+            </ul>
         </div>
     );
 }
