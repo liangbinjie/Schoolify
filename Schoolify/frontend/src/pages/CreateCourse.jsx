@@ -65,7 +65,7 @@ function CreateCourse() {
 
             // Actualizar la lista de createdCourses del usuario
             const courseId = res.data.course._id;
-            await axios.put(`http://localhost:5000/user/${user._id}/add-course`, {
+            await axios.put(`http://localhost:5000/users/${user._id}/add-course`, {
                 courseId,
             });
 

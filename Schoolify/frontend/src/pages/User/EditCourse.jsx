@@ -1,19 +1,34 @@
 import React, { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 
 function EditCourse() {
     const { courseId } = useParams(); // Obtener el ID del curso desde la URL
     const [activeSection, setActiveSection] = useState("general"); // Controlar la sección activa
+    const [courseName, setCourseName] = useState(""); // Para mostrar el nombre del curso en el título
 
     // Función para cambiar de sección
     const handleSectionChange = (section) => {
         setActiveSection(section);
     };
 
+    useEffect(() => {
+        // Obtener el nombre del curso para el título
+        const fetchCourseName = async () => {
+            try {
+                const response = await axios.get(`http://localhost:5000/courses/${courseId}`);
+                setCourseName(response.data.name);
+            } catch (error) {
+                console.error("Error al obtener el nombre del curso:", error);
+            }
+        };
+
+        fetchCourseName();
+    }, [courseId]);
+
     return (
         <div className="container my-5">
-            <h1 className="text-center mb-4">Editar Curso</h1>
+            <h1 className="text-center mb-4">Editando Curso {courseName}</h1>
 
             {/* Navbar de navegación */}
             <ul className="nav nav-tabs mb-4">
@@ -61,23 +76,67 @@ function EditCourse() {
 }
 
 function GeneralSection({ courseId }) {
+    const navigate = useNavigate(); // Para redirigir después de guardar cambios
     const [courseData, setCourseData] = useState({
         name: "",
         code: "",
         description: "",
+        startDate: "",
         endDate: "",
         state: "in edition",
+        image: null,
     });
+
+    // Obtener los datos del curso al montar el componente
+    useEffect(() => {
+        const fetchCourseData = async () => {
+            try {
+                const response = await axios.get(`http://localhost:5000/courses/${courseId}`);
+                setCourseData({
+                    name: response.data.name,
+                    code: response.data.code,
+                    description: response.data.description,
+                    startDate: response.data.startDate.split("T")[0], // Formato de fecha
+                    endDate: response.data.endDate.split("T")[0], // Formato de fecha
+                    state: response.data.state,
+                    image: null, // Imagen no se carga aquí
+                });
+            } catch (error) {
+                console.error("Error al obtener los datos del curso:", error);
+            }
+        };
+
+        fetchCourseData();
+    }, [courseId]);
 
     const handleInputChange = (e) => {
         const { name, value } = e.target;
         setCourseData({ ...courseData, [name]: value });
     };
 
+    const handleImageChange = (e) => {
+        setCourseData({ ...courseData, image: e.target.files[0] });
+    };
+
     const handleSave = async () => {
         try {
-            await axios.put(`http://localhost:5000/courses/${courseId}`, courseData);
+            const formData = new FormData();
+            formData.append("name", courseData.name);
+            formData.append("code", courseData.code);
+            formData.append("description", courseData.description);
+            formData.append("startDate", courseData.startDate);
+            formData.append("endDate", courseData.endDate);
+            formData.append("state", courseData.state);
+            if (courseData.image) {
+                formData.append("image", courseData.image); // Asegúrate de que la imagen se incluya
+            }
+
+            await axios.put(`http://localhost:5000/courses/${courseId}`, formData, {
+                headers: { "Content-Type": "multipart/form-data" },
+            });
+
             alert("Curso actualizado con éxito");
+            navigate("/cursos-creados");
         } catch (error) {
             console.error("Error al actualizar el curso:", error);
         }
@@ -117,6 +176,16 @@ function GeneralSection({ courseId }) {
                     ></textarea>
                 </div>
                 <div className="mb-3">
+                    <label className="form-label">Fecha de Inicio</label>
+                    <input
+                        type="date"
+                        className="form-control"
+                        name="startDate"
+                        value={courseData.startDate}
+                        onChange={handleInputChange}
+                    />
+                </div>
+                <div className="mb-3">
                     <label className="form-label">Fecha de Finalización</label>
                     <input
                         type="date"
@@ -139,6 +208,15 @@ function GeneralSection({ courseId }) {
                         <option value="active">Activo</option>
                         <option value="closed">Cerrado</option>
                     </select>
+                </div>
+                <div className="mb-3">
+                    <label className="form-label">Imagen del Curso</label>
+                    <input
+                        type="file"
+                        className="form-control"
+                        name="image"
+                        onChange={handleImageChange}
+                    />
                 </div>
                 <button type="button" className="btn btn-primary" onClick={handleSave}>
                     Guardar Cambios

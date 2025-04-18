@@ -135,19 +135,40 @@ courseRouter.post("/clone/:id", async (req, res) => {
 });
 
 // update course by id
-courseRouter.put("/:id", async (req, res) => {
-    const { id } = req.params;
-    const { code, name, description, startDate, endDate, image, studentList, teacher } = req.body;
+courseRouter.put("/:id", upload.single("image"), async (req, res) => {
+    const { name, code, description, startDate, endDate, state } = req.body;
+
+    if (!name || !code || !description || !startDate || !endDate || !state) {
+        return res.status(400).json({ message: "Todos los campos son obligatorios" });
+    }
 
     try {
-        const course = await Course.findByIdAndUpdate(id, { code, name, description, startDate, endDate, image, studentList, teacher }, { new: true });
+        const course = await Course.findById(req.params.id);
         if (!course) {
-            return res.status(404).json({ message: "Course not found" });
+            return res.status(404).json({ message: "Curso no encontrado" });
         }
-        res.status(200).json(course);
-    } catch (err) {
-        console.error("Error updating course:", err);
-        res.status(500).json({ message: "Internal server error" });
+
+        // Actualizar los campos del curso
+        course.name = name;
+        course.code = code;
+        course.description = description;
+        course.startDate = new Date(startDate);
+        course.endDate = new Date(endDate);
+        course.state = state;
+
+        // Si se envió una nueva imagen, actualízala
+        if (req.file) {
+            course.image = {
+                data: req.file.buffer,
+                contentType: req.file.mimetype,
+            };
+        }
+
+        await course.save();
+        res.status(200).json({ message: "Curso actualizado con éxito" });
+    } catch (error) {
+        console.error("Error al actualizar el curso:", error);
+        res.status(500).json({ message: "Error interno del servidor" });
     }
 });
 
@@ -190,15 +211,14 @@ courseRouter.get("/:id/image", async (req, res) => {
         const course = await Course.findById(req.params.id);
 
         if (!course || !course.image || !course.image.data) {
-            return res.status(404).json({ message: "Image not found" });
+            return res.status(404).json({ message: "Imagen no encontrada" });
         }
 
         res.set("Content-Type", course.image.contentType);
         res.send(course.image.data);
-
     } catch (err) {
-        console.error("Error retrieving course image:", err);
-        res.status(500).json({ message: "Internal server error" });
+        console.error("Error al recuperar la imagen del curso:", err);
+        res.status(500).json({ message: "Error interno del servidor" });
     }
 });
 
