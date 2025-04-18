@@ -35,11 +35,9 @@ function UserProfile() {
             const response = await axios.post(`http://localhost:5000/api/friends/send-friend-request/${friendUsername}`, {
                 username: user.username,
             });
-            console.log(response.data);
-    
-            // Update global context if needed
-            updateUser(response.data.user);
-    
+            if (response.ok) {
+                updateUser(response.data.user);
+            }
         } catch (error) {
             console.error("Error sending friend request:", error);
         }
