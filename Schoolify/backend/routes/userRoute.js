@@ -1,7 +1,8 @@
 import express from "express";
 import bcrypt from "bcrypt";
 import multer from "multer";
-import User from '../db/models/userModel.js'
+import User from '../db/models/userModel.js';
+import Course from "../db/models/courseModel.js"; // Importar el modelo de Course
 
 const userRouter = express.Router();
 
@@ -146,6 +147,24 @@ userRouter.put("/:id/add-course", async (req, res) => {
         res.status(200).json({ message: "Course added to createdCourses" });
     } catch (err) {
         console.error("Error updating createdCourses:", err);
+        res.status(500).json({ message: "Internal server error" });
+    }
+});
+
+// get user's created courses
+userRouter.get("/:id/created-courses", async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const user = await User.findById(id).select("createdCourses");
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        const courses = await Course.find({ _id: { $in: user.createdCourses } });
+        res.status(200).json(courses);
+    } catch (err) {
+        console.error("Error fetching created courses:", err);
         res.status(500).json({ message: "Internal server error" });
     }
 });

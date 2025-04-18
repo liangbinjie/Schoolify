@@ -38,7 +38,7 @@ app.use((req, res, next) => {
 });
 
 // Rutas
-app.use("/user", userRouter);
+app.use("/users", userRouter);
 app.use("/", authRouter);
 app.use("/courses", courseRouter);
 app.use("/enrollment", enrollmentRouter);

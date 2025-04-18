@@ -12,41 +12,39 @@ import CreateCourse from "./pages/CreateCourse.jsx";
 import FriendRequests from "./pages/User/FriendRequets.jsx";
 import Friends from "./pages/User/Friends.jsx";
 import Messages from "./pages/User/Messages.jsx";
+import UserCourses from "./pages/User/UserCourses.jsx";
 import { AuthRoute, NotAuthRoute } from "./context/AuthRoute.jsx";
-// import Footer from './components/Footer.jsx';
-/* 
-
-Se define todo lo relacionado a rutas,
-Se define el "navbar" como un componente global en toda la app
---> Agregar en un futuro rutas autorizadas y no autorizadas (es decir, si el usuario no esta logueado no podra ingresar a ciertas rutas)
-
-*/
+import { useAuth } from "./context/AuthProvider";
 
 function App() {
-  
-  return (
-    <>
-      <Navbar/>
-        <Routes>
-          <Route path="/" element={<Home/>} />
-          <Route path="/home" element={<Home/>} />
-          <Route element={<NotAuthRoute/>}>
-            <Route path="/login" element={<LoginPage/>} />
-            <Route path="/signin" element={<SignInPage/>} />
-          </Route>
-          <Route element={<AuthRoute/>}>
-            <Route path="/profile" element={<Profile/>}/>
-            <Route path="/friend-requests" element={<FriendRequests/>}/>
-            <Route path="/user/:username" element={<UserProfile/>}/>
-            <Route path="/principal" element={<WindowPrincipal />} />
-            <Route path="/course/:id" element={<CourseView />} />
-            <Route path="/create-course" element={<CreateCourse />} />
-            <Route path="/amigos" element={<Friends/>}/>
-            <Route path="/messages" element={<Messages/>}/>
-          </Route>
-        </Routes>
-    </>
-  )
+    const { user } = useAuth(); // Obtén el usuario autenticado
+
+    return (
+        <>
+            <Navbar />
+            <Routes>
+                <Route path="/" element={<Home />} />
+                <Route path="/home" element={<Home />} />
+                <Route element={<NotAuthRoute />}>
+                    <Route path="/login" element={<LoginPage />} />
+                    <Route path="/signin" element={<SignInPage />} />
+                </Route>
+                <Route element={<AuthRoute />}>
+                    <Route path="/profile" element={<Profile />} />
+                    <Route path="/friend-requests" element={<FriendRequests />} />
+                    <Route path="/user/:username" element={<UserProfile />} />
+                    <Route path="/principal" element={<WindowPrincipal />} />
+                    <Route path="/course/:id" element={<CourseView />} />
+                    <Route path="/create-course" element={<CreateCourse />} />
+                    <Route path="/amigos" element={<Friends />} />
+                    <Route path="/messages" element={<Messages />} />
+                    {user && (
+                        <Route path="/cursos-creados" element={<UserCourses userId={user._id} />} />
+                    )}
+                </Route>
+            </Routes>
+        </>
+    );
 }
 
-export default App
+export default App;
