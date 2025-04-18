@@ -11,6 +11,7 @@ import CourseView from "./pages/CourseView.jsx";
 import CreateCourse from "./pages/CreateCourse.jsx";
 import FriendRequests from "./pages/User/FriendRequets.jsx";
 import Friends from "./pages/User/Friends.jsx";
+import Messages from "./pages/User/Messages.jsx";
 import { AuthRoute, NotAuthRoute } from "./context/AuthRoute.jsx";
 // import Footer from './components/Footer.jsx';
 /* 
@@ -24,7 +25,6 @@ Se define el "navbar" como un componente global en toda la app
 function App() {
   
   return (
-    
     <>
       <Navbar/>
         <Routes>
@@ -42,10 +42,10 @@ function App() {
             <Route path="/course/:id" element={<CourseView />} />
             <Route path="/create-course" element={<CreateCourse />} />
             <Route path="/amigos" element={<Friends/>}/>
+            <Route path="/messages" element={<Messages/>}/>
           </Route>
         </Routes>
     </>
-    
   )
 }
 

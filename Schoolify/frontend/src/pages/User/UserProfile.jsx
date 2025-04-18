@@ -11,6 +11,11 @@ function UserProfile() {
     const [profilePicture, setProfilePicture] = useState(null);
     const { user } = useAuth(); // Obtener el usuario del contexto
 
+    if (!user || !user.username) {
+        console.error("El usuario no está autenticado o no tiene un nombre de usuario válido.");
+        return;
+    }
+
     const fetchUserData = async () => {
         try {
             const response = await axios.get(`http://localhost:5000/user/${username}`);
@@ -32,16 +37,22 @@ function UserProfile() {
 
     const sendFriendRequest = async (friendUsername) => {
         try {
+            console.log("Sending friend request to:", friendUsername);
+            console.log("Current user:", user.username);
+    
             const response = await axios.post(`http://localhost:5000/api/friends/send-friend-request/${friendUsername}`, {
-                username: user.username,
+                username: user.username, // Asegúrate de que user.username no sea undefined
             });
+
             if (response.ok) {
                 updateUser(response.data.user);
             }
+
         } catch (error) {
             console.error("Error sending friend request:", error);
+            console.error("Error details:", error.response?.data || error.message);
         }
-    }
+    };
 
     return (
         <div style={{ padding: "20px" }}>
