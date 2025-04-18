@@ -20,55 +20,35 @@ export default function setupSocketIO(io) {
     // Handle joining a chat room
     socket.on("joinRoom", async ({ roomId }) => {
       socket.join(roomId);
-      console.log(`Socket ${socket.id} se unió a sala: ${roomId}`);
+      console.log(`[SERVER] Socket ${socket.id} se unió a la sala: ${roomId}`);
 
-      // Obtener historial de mensajes desde Redis
       try {
+        // Obtener historial de mensajes desde Redis
         const messages = await redis.lrange(`chat:${roomId}`, 0, -1);
         const parsed = messages.map((msg) => JSON.parse(msg));
+        console.log(`[SERVER] Historial de mensajes para ${roomId}:`, parsed);
+
+        // Enviar historial al cliente
         socket.emit("chatHistory", parsed);
       } catch (err) {
-        console.error("Error al obtener historial:", err);
+        console.error(`[SERVER] Error al obtener historial para ${roomId}:`, err);
       }
     });
 
     // Handle sending a message
     socket.on("sendMessage", async ({ roomId, message }) => {
-      try {
-        // Add timestamp if not provided
-        if (!message.timestamp) {
-          message.timestamp = new Date().toISOString();
-        }
-        
-        // Add sender information if not provided
-        if (!message.sender) {
-          message.sender = userInfo.username;
-        }
-        
-        // Guardar en Redis
-        await redis.rpush(`chat:${roomId}`, JSON.stringify(message));
-        
-        // Also store in a separate list for the recipient
-        if (message.receiver) {
-          await redis.rpush(`user:${message.receiver}:messages`, JSON.stringify({
-            ...message,
-            roomId
-          }));
-        }
+      console.log(`[SERVER] Mensaje recibido en la sala ${roomId}:`, message);
 
-        // Emitir en tiempo real a todos los usuarios en esa sala
-        io.to(roomId).emit("receiveMessage", message);
-        
-        // Also send to the recipient's personal room if they're not in the chat room
-        if (message.receiver) {
-          io.to(`user:${message.receiver}`).emit("newMessage", {
-            ...message,
-            roomId
-          });
-        }
-      } catch (err) {
-        console.error("Error al guardar/enviar mensaje:", err);
+      // Asegúrate de que el mensaje tenga un timestamp y un remitente
+      if (!message.timestamp) {
+        message.timestamp = new Date().toISOString();
       }
+      if (!message.sender) {
+        message.sender = userInfo.username;
+      }
+
+      // Llamar a la función para enviar el mensaje
+      await sendMessageToRoom(io, roomId, message);
     });
     
     // Handle marking messages as read
@@ -113,4 +93,18 @@ export default function setupSocketIO(io) {
       console.log("Usuario desconectado:", socket.id);
     });
   });
+}
+
+async function sendMessageToRoom(io, roomId, message) {
+  try {
+    // Guardar el mensaje en Redis
+    await redis.rpush(`chat:${roomId}`, JSON.stringify(message));
+    console.log(`[SERVER] Mensaje guardado en Redis para la sala ${roomId}`);
+
+    // Emitir el mensaje a todos los usuarios en la sala
+    io.to(roomId).emit("receiveMessage", message);
+    console.log(`[SERVER] Mensaje emitido a la sala ${roomId}:`, message);
+  } catch (err) {
+    console.error(`[SERVER] Error al enviar mensaje a la sala ${roomId}:`, err);
+  }
 }
