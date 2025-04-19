@@ -83,15 +83,6 @@ const MessageChat = ({ selectedUser }) => {
     });
     
     sendMessage(roomId, message.trim());
-
-    const newMessage = {
-      content: message.trim(),
-      sender: user._id,
-      receiver: selectedUser._id,
-      timestamp: new Date().toISOString()
-    };
-    setMessages(prev => [...prev, newMessage]);
-    
     setMessage('');
     setIsTyping(false);
     sendTypingIndicator(roomId, false);
