@@ -61,6 +61,7 @@ export const SocketProvider = ({ children }) => {
       const messageData = {
         content: content,
         sender: user._id,
+        receiver: roomId.split('-').find(id => id !== user._id),
         timestamp: new Date().toISOString()
       };
       console.log('[Socket] Sending message:', { roomId, messageData });

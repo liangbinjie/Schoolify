@@ -57,14 +57,15 @@ export default function setupSocketIO(io) {
 
     // Handle sending a message
     socket.on("sendMessage", async ({ roomId, message }) => {
-      console.log(`[Socket Server] Received message from ${userInfo.username}:`, { roomId, message });
+      console.log(`[Socket Server] Received message:`, { roomId, message, userInfo });
 
       try {
         // Ensure message has required fields
         const messageData = {
-          ...message,
+          content: message.content,
+          sender: message.sender,
+          receiver: message.receiver,
           timestamp: message.timestamp || new Date().toISOString(),
-          sender: message.sender || userInfo.userId,
           roomId
         };
 
@@ -79,9 +80,9 @@ export default function setupSocketIO(io) {
         console.log(`[Socket Server] Message emitted to room ${roomId}`);
 
         // Also emit to recipient's personal room if they're not in the chat room
-        if (message.receiver) {
-          io.to(`user:${message.receiver}`).emit("newMessage", messageData);
-          console.log(`[Socket Server] Message sent to recipient's personal room: ${message.receiver}`);
+        if (messageData.receiver) {
+          io.to(`user:${messageData.receiver}`).emit("newMessage", messageData);
+          console.log(`[Socket Server] Message sent to recipient's personal room: ${messageData.receiver}`);
         }
       } catch (err) {
         console.error(`[Socket Server] Error handling message:`, err);

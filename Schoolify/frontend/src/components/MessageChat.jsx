@@ -58,13 +58,26 @@ const MessageChat = ({ selectedUser }) => {
     if (message.trim() && roomId) {
       console.log('[Chat] Sending message:', {
         roomId,
-        message: message.trim()
+        content: message.trim(),
+        sender: user._id,
+        receiver: selectedUser._id
       });
       
       sendMessage(roomId, message.trim());
+
+      // Optimistically add message to UI
+      const newMessage = {
+        content: message.trim(),
+        sender: user._id,
+        receiver: selectedUser._id,
+        timestamp: new Date().toISOString()
+      };
+      setMessages(prev => [...prev, newMessage]);
+      
       setMessage('');
       setIsTyping(false);
       sendTypingIndicator(roomId, false);
+      scrollToBottom();
     }
   };
 
