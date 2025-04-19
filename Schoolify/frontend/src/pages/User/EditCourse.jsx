@@ -321,6 +321,7 @@ function GeneralSection({ courseId }) {
 function TopicsSection({ courseId }) {
     const [topics, setTopics] = useState([]);
     const [newTopic, setNewTopic] = useState({ title: "", description: "", order: 1, contents: [] });
+    const [newSubtopic, setNewSubtopic] = useState({ title: "", description: "", order: 1 });
     const [expandedTopicId, setExpandedTopicId] = useState(null);
     const [editingTopic, setEditingTopic] = useState(null);
     const [editingSubtopic, setEditingSubtopic] = useState(null);
@@ -375,16 +376,13 @@ function TopicsSection({ courseId }) {
             await axios.put(`http://localhost:5000/api/tabs/courses/${courseId}/tabs/${editingTopic._id}`, {
                 title: editingTopic.title,
                 description: editingTopic.description,
-                order: editingTopic.order
+                order: editingTopic.order,
             });
 
-            setTopics(topics.map(topic => 
-                topic._id === editingTopic._id ? {
-                    ...topic,
-                    title: editingTopic.title,
-                    description: editingTopic.description,
-                    order: editingTopic.order
-                } : topic
+            setTopics(topics.map(topic =>
+                topic._id === editingTopic._id
+                    ? { ...topic, ...editingTopic }
+                    : topic
             ));
 
             setEditingTopic(null);
@@ -397,32 +395,29 @@ function TopicsSection({ courseId }) {
 
     const saveEditedSubtopic = async () => {
         try {
-            const parentTopic = topics.find(topic => topic._id === editingSubtopic.topicId);
-
-            if (!parentTopic) {
-                throw new Error("No se encontró el tema padre");
-            }
-
-            const updatedSubtabs = parentTopic.subtabs.map(subtab => 
-                subtab._id === editingSubtopic._id ? {
-                    ...subtab,
+            await axios.put(
+                `http://localhost:5000/api/tabs/courses/${courseId}/tabs/${editingSubtopic.topicId}/subtabs/${editingSubtopic._id}`,
+                {
                     title: editingSubtopic.title,
                     description: editingSubtopic.description,
-                    order: editingSubtopic.order
-                } : subtab
+                    order: editingSubtopic.order,
+                }
             );
 
-            await axios.put(`http://localhost:5000/api/tabs/courses/${courseId}/tabs/${editingSubtopic.topicId}`, {
-                subtabs: updatedSubtabs
-            });
+            const updatedTopics = topics.map(topic =>
+                topic._id === editingSubtopic.topicId
+                    ? {
+                          ...topic,
+                          subtabs: topic.subtabs.map(subtab =>
+                              subtab._id === editingSubtopic._id
+                                  ? { ...subtab, ...editingSubtopic }
+                                  : subtab
+                          ),
+                      }
+                    : topic
+            );
 
-            setTopics(topics.map(topic => 
-                topic._id === editingSubtopic.topicId ? {
-                    ...topic,
-                    subtabs: updatedSubtabs
-                } : topic
-            ));
-
+            setTopics(updatedTopics);
             setEditingSubtopic(null);
             alert("Subtema actualizado correctamente");
         } catch (error) {
@@ -489,6 +484,11 @@ function TopicsSection({ courseId }) {
         setNewTopic({ ...newTopic, [name]: value });
     };
 
+    const handleSubtopicInputChange = (e) => {
+        const { name, value } = e.target;
+        setNewSubtopic({ ...newSubtopic, [name]: value });
+    };
+
     const handleTopicFileChange = (e) => {
         setSelectedFile(e.target.files[0]);
     };
@@ -551,12 +551,36 @@ function TopicsSection({ courseId }) {
         window.open(`http://localhost:5000/api/cassandra-files/download/${fileId}`, '_blank');
     };
 
+    const deleteFileFromTab = async (topicId, fileId) => {
+        try {
+            await axios.delete(`http://localhost:5000/api/cassandra-files/delete/${fileId}`);
+            loadTopicFiles(topicId);
+            alert("Archivo eliminado correctamente");
+        } catch (error) {
+            console.error("Error al eliminar archivo:", error);
+            alert("Error al eliminar archivo");
+        }
+    };
+
+    const deleteFileFromSubtab = async (topicId, subtopicId, fileId) => {
+        try {
+            await axios.delete(`http://localhost:5000/api/cassandra-files/delete/${fileId}`);
+            loadSubtopicFiles(topicId, subtopicId);
+            alert("Archivo eliminado correctamente");
+        } catch (error) {
+            console.error("Error al eliminar archivo del subtema:", error);
+            alert("Error al eliminar archivo del subtema");
+        }
+    };
+
     const saveTopic = async () => {
         try {
             const formData = new FormData();
             formData.append("title", newTopic.title);
             formData.append("description", newTopic.description);
             formData.append("order", newTopic.order);
+
+            newTopic.contents.forEach((file) => formData.append("contents", file));
 
             const response = await axios.post(
                 `http://localhost:5000/api/tabs/courses/${courseId}/tabs`,
@@ -568,14 +592,37 @@ function TopicsSection({ courseId }) {
             setTopics([...topics, newTopicData]);
             setNewTopic({ title: "", description: "", order: 1, contents: [] });
 
-            setUploadedFiles(prev => ({
-                ...prev,
-                [newTopicData._id]: []
-            }));
-
             alert("Tema creado exitosamente");
         } catch (error) {
             console.error("Error al guardar el tema:", error);
+            alert("Error al guardar el tema");
+        }
+    };
+
+    const saveSubtopic = async (topicId) => {
+        try {
+            const response = await axios.post(
+                `http://localhost:5000/api/tabs/courses/${courseId}/tabs/${topicId}/subtabs`,
+                {
+                    title: newSubtopic.title,
+                    description: newSubtopic.description,
+                    order: newSubtopic.order,
+                }
+            );
+
+            const updatedTopics = topics.map((topic) =>
+                topic._id === topicId
+                    ? { ...topic, subtabs: [...topic.subtabs, response.data.subtab] }
+                    : topic
+            );
+
+            setTopics(updatedTopics);
+            setNewSubtopic({ title: "", description: "", order: 1 });
+
+            alert("Subtema creado exitosamente");
+        } catch (error) {
+            console.error("Error al guardar el subtema:", error);
+            alert("Error al guardar el subtema");
         }
     };
 
@@ -666,12 +713,20 @@ function TopicsSection({ courseId }) {
                                             {uploadedFiles[topic._id].map(file => (
                                                 <li key={file.file_id} className="list-group-item d-flex justify-content-between align-items-center">
                                                     {file.filename}
-                                                    <button
-                                                        className="btn btn-primary btn-sm"
-                                                        onClick={() => downloadFile(file.file_id, file.filename)}
-                                                    >
-                                                        <i className="bi bi-download"></i> Descargar
-                                                    </button>
+                                                    <div>
+                                                        <button
+                                                            className="btn btn-primary btn-sm me-2"
+                                                            onClick={() => downloadFile(file.file_id, file.filename)}
+                                                        >
+                                                            <i className="bi bi-download"></i> Descargar
+                                                        </button>
+                                                        <button
+                                                            className="btn btn-danger btn-sm"
+                                                            onClick={() => deleteFileFromTab(topic._id, file.file_id)}
+                                                        >
+                                                            <i className="bi bi-trash"></i> Eliminar
+                                                        </button>
+                                                    </div>
                                                 </li>
                                             ))}
                                         </ul>
@@ -715,12 +770,20 @@ function TopicsSection({ courseId }) {
                                                         {uploadedFiles[`${topic._id}_${subtab._id}`].map(file => (
                                                             <li key={file.file_id} className="list-group-item d-flex justify-content-between align-items-center">
                                                                 {file.filename}
-                                                                <button
-                                                                    className="btn btn-primary btn-sm"
-                                                                    onClick={() => downloadFile(file.file_id, file.filename)}
-                                                                >
-                                                                    <i className="bi bi-download"></i> Descargar
-                                                                </button>
+                                                                <div>
+                                                                    <button
+                                                                        className="btn btn-primary btn-sm me-2"
+                                                                        onClick={() => downloadFile(file.file_id, file.filename)}
+                                                                    >
+                                                                        <i className="bi bi-download"></i> Descargar
+                                                                    </button>
+                                                                    <button
+                                                                        className="btn btn-danger btn-sm"
+                                                                        onClick={() => deleteFileFromSubtab(topic._id, subtab._id, file.file_id)}
+                                                                    >
+                                                                        <i className="bi bi-trash"></i> Eliminar
+                                                                    </button>
+                                                                </div>
                                                             </li>
                                                         ))}
                                                     </ul>
@@ -731,6 +794,54 @@ function TopicsSection({ courseId }) {
                                         </li>
                                     ))}
                                 </ul>
+
+                                {/* Formulario para agregar subtemas */}
+                                <div className="card mb-4">
+                                    <div className="card-header">Agregar Subtema</div>
+                                    <div className="card-body">
+                                        <div className="mb-3">
+                                            <label className="form-label">Título</label>
+                                            <input
+                                                type="text"
+                                                className="form-control"
+                                                name="title"
+                                                value={newSubtopic.title}
+                                                onChange={(e) =>
+                                                    setNewSubtopic({ ...newSubtopic, title: e.target.value })
+                                                }
+                                            />
+                                        </div>
+                                        <div className="mb-3">
+                                            <label className="form-label">Descripción</label>
+                                            <textarea
+                                                className="form-control"
+                                                name="description"
+                                                value={newSubtopic.description}
+                                                onChange={(e) =>
+                                                    setNewSubtopic({ ...newSubtopic, description: e.target.value })
+                                                }
+                                            ></textarea>
+                                        </div>
+                                        <div className="mb-3">
+                                            <label className="form-label">Orden</label>
+                                            <input
+                                                type="number"
+                                                className="form-control"
+                                                name="order"
+                                                value={newSubtopic.order}
+                                                onChange={(e) =>
+                                                    setNewSubtopic({ ...newSubtopic, order: e.target.value })
+                                                }
+                                            />
+                                        </div>
+                                        <button
+                                            className="btn btn-primary"
+                                            onClick={() => saveSubtopic(topic._id)}
+                                        >
+                                            Guardar Subtema
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         )}
                     </div>

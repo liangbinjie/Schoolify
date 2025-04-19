@@ -16,6 +16,7 @@ import redis from './db/redis.js';
 import setupSocketIO from './routes/socket/msgSocket.js';
 import { initCassandra } from './db/cassandra.js';
 import neo4jRouter from './routes/neo4jRoutes/friends.js';
+import cassandraFilesRoute from "./routes/cassandraFilesRoute.js";
 
 const PORT = process.env.PORT || 5000;
 const schoolify_uri = process.env.MONGO_SCHOOLIFY_DB_URI;
@@ -51,6 +52,7 @@ app.use("/api/evaluations", evaluationRouter);
 app.use("/api/friends", friendRouter);
 app.use('/api/cassandra-files', cassandraFileRouter); // Cambiamos la ruta para evitar confusiones
 app.use("/api/neo4j", neo4jRouter);
+app.use("/api/cassandra-files", cassandraFilesRoute);
 
 app.get("/", (req, res) => {
     return res.status(234).send("hello world");
