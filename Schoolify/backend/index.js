@@ -11,8 +11,10 @@ import fileRouter from './routes/fileRoute.js';
 import evaluationRouter from "./routes/courseEvaluationsRoute.js";
 import authRouter from './routes/Auth/loginRoute.js';
 import friendRouter from './routes/friendRoute.js';
-import redis from './db/redis.js';
-import setupSocketIO from './routes/socket/msgSocket.js';
+// import redis from './db/redis.js';
+// import setupSocketIO from './routes/socket/msgSocket.js';
+
+import neo4jRouter from './routes/neo4jRoutes/friends.js';
 
 const PORT = process.env.PORT || 5000;
 const schoolify_uri = process.env.MONGO_SCHOOLIFY_DB_URI;
@@ -32,10 +34,10 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Redis middleware
-app.use((req, res, next) => {
-    req.redis = redis;
-    next();
-});
+// app.use((req, res, next) => {
+//     req.redis = redis;
+//     next();
+// });
 
 // Rutas
 app.use("/user", userRouter);
@@ -47,19 +49,21 @@ app.use('/api/files', fileRouter);
 app.use("/api/evaluations", evaluationRouter);
 app.use("/api/friends", friendRouter);
 
+app.use("/api/neo4j", neo4jRouter);
+
 app.get("/", (req, res) => {
     return res.status(234).send("hello world");
 });
 
 // Setup Socket.IO
-setupSocketIO(io);
+// setupSocketIO(io);
 
 try {
     await connectMongoDB(schoolify_uri);
     
     // Test Redis connection
-    await redis.ping();
-    console.log('Redis connection successful');
+    // await redis.ping();
+    // console.log('Redis connection successful');
 
     httpServer.listen(PORT, () =>
         console.log(`Listening on port ${PORT}`)

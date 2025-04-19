@@ -34,10 +34,10 @@ export const AuthProvider = ({ children }) => {
     console.log(userData)
   };
 
-  const updateUser = useCallback((updatedUser) => {
+  const updateUser = ((updatedUser) => {
     setUser(updatedUser);
     localStorage.setItem("user", JSON.stringify(updatedUser));
-  }, []);
+  });
 
   // Logout handler
   const logout = () => {

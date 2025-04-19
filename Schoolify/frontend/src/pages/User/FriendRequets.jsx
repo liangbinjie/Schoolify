@@ -37,6 +37,10 @@ function FriendRequests() {
 
     const acceptHandler = async (friendUsername) => {
         try {
+            await axios.post(`http://localhost:5000/api/neo4j/accept-friend-request/`, {
+                myUsername: user.username,
+                friendUsername: friendUsername,
+            });
             await axios.post(`http://localhost:5000/api/friends/accept-friend-request/${friendUsername}`, {
                 username: user.username,
             });
