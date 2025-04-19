@@ -57,7 +57,20 @@ export default function setupSocketIO(io) {
 
     // Handle sending a message
     socket.on("sendMessage", async ({ roomId, message }) => {
-      console.log(`[Socket Server] Received message:`, { roomId, message, userInfo });
+      if (!roomId || !message) {
+        console.error('[Socket Server] Invalid message data:', {
+          roomId,
+          message
+        });
+        socket.emit('messageError', { error: 'Invalid message data' });
+        return;
+      }
+
+      console.log(`[Socket Server] Received message:`, {
+        roomId,
+        message,
+        userInfo
+      });
 
       try {
         // Ensure message has required fields
@@ -69,6 +82,10 @@ export default function setupSocketIO(io) {
           roomId
         };
 
+        if (!messageData.content || !messageData.sender || !messageData.receiver) {
+          throw new Error('Missing required message fields');
+        }
+
         console.log("[Socket Server] Processed message data:", messageData);
 
         // Save message to Redis
@@ -79,15 +96,14 @@ export default function setupSocketIO(io) {
         io.to(roomId).emit("receiveMessage", messageData);
         console.log(`[Socket Server] Message emitted to room ${roomId}`);
 
-        // Also emit to recipient's personal room if they're not in the chat room
-        if (messageData.receiver) {
-          io.to(`user:${messageData.receiver}`).emit("newMessage", messageData);
-          console.log(`[Socket Server] Message sent to recipient's personal room: ${messageData.receiver}`);
-        }
+        // Also emit to recipient's personal room
+        io.to(`user:${messageData.receiver}`).emit("newMessage", messageData);
+        console.log(`[Socket Server] Message sent to recipient's personal room: ${messageData.receiver}`);
       } catch (err) {
         console.error(`[Socket Server] Error handling message:`, err);
-        // Notify the sender of the error
-        socket.emit('messageError', { error: 'Failed to send message' });
+        socket.emit('messageError', {
+          error: err.message || 'Failed to send message'
+        });
       }
     });
     
@@ -133,6 +149,15 @@ export default function setupSocketIO(io) {
     
     // Handle typing indicators
     socket.on("typing", ({ roomId, username, isTyping }) => {
+      if (!roomId || !username) {
+        console.error('[Socket Server] Invalid typing indicator data:', {
+          roomId,
+          username,
+          isTyping
+        });
+        return;
+      }
+
       console.log(`[Socket Server] Typing indicator from ${username} in room ${roomId}:`, isTyping);
       socket.to(roomId).emit("userTyping", { username, isTyping });
     });

@@ -49,24 +49,46 @@ export const SocketProvider = ({ children }) => {
 
   // Function to join a chat room
   const joinRoom = useCallback((roomId) => {
-    if (socket) {
-      console.log('[Socket] Joining room:', roomId);
-      socket.emit('joinRoom', { roomId });
+    if (!socket || !roomId) {
+      console.error('[Socket] Cannot join room:', {
+        hasSocket: Boolean(socket),
+        roomId
+      });
+      return;
     }
+
+    console.log('[Socket] Joining room:', roomId);
+    socket.emit('joinRoom', { roomId });
   }, [socket]);
 
   // Function to send a message
   const sendMessage = useCallback((roomId, content) => {
-    if (socket && user) {
-      const messageData = {
-        content: content,
-        sender: user._id,
-        receiver: roomId.split('-').find(id => id !== user._id),
-        timestamp: new Date().toISOString()
-      };
-      console.log('[Socket] Sending message:', { roomId, messageData });
-      socket.emit('sendMessage', { roomId, message: messageData });
+    if (!socket || !user || !roomId || !content) {
+      console.error('[Socket] Cannot send message:', {
+        hasSocket: Boolean(socket),
+        hasUser: Boolean(user),
+        roomId,
+        hasContent: Boolean(content)
+      });
+      return;
     }
+
+    const messageData = {
+      content: content,
+      sender: user._id,
+      receiver: roomId.split('-').find(id => id !== user._id),
+      timestamp: new Date().toISOString()
+    };
+
+    console.log('[Socket] Sending message:', {
+      roomId,
+      messageData
+    });
+
+    socket.emit('sendMessage', {
+      roomId,
+      message: messageData
+    });
   }, [socket, user]);
 
   // Function to mark messages as read
@@ -79,9 +101,26 @@ export const SocketProvider = ({ children }) => {
 
   // Function to send typing indicator
   const sendTypingIndicator = useCallback((roomId, isTyping) => {
-    if (socket && user) {
-      socket.emit('typing', { roomId, username: user.username, isTyping });
+    if (!socket || !user || !roomId) {
+      console.error('[Socket] Cannot send typing indicator:', {
+        hasSocket: Boolean(socket),
+        hasUser: Boolean(user),
+        roomId
+      });
+      return;
     }
+
+    console.log('[Socket] Sending typing indicator:', {
+      roomId,
+      username: user.username,
+      isTyping
+    });
+
+    socket.emit('typing', {
+      roomId,
+      username: user.username,
+      isTyping
+    });
   }, [socket, user]);
 
   // Function to listen for chat history

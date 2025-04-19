@@ -13,9 +13,24 @@ const MessageChat = ({ selectedUser }) => {
   const { socket, joinRoom, sendMessage, markAsRead, sendTypingIndicator, onChatHistory, onReceiveMessage, typingUsers } = useSocket();
   const { user } = useAuth();
 
-  const roomId = selectedUser ? [user._id, selectedUser._id].sort().join('-') : null;
+  // Create room ID only if both user IDs are available
+  const roomId = user?._id && selectedUser?._id 
+    ? [user._id, selectedUser._id].sort().join('-') 
+    : null;
 
   useEffect(() => {
+    console.log('[Chat] Current user:', user);
+    console.log('[Chat] Selected user:', selectedUser);
+    console.log('[Chat] Room ID:', roomId);
+
+    if (!user?._id || !selectedUser?._id) {
+      console.error('[Chat] Missing user IDs:', { 
+        currentUserId: user?._id, 
+        selectedUserId: selectedUser?._id 
+      });
+      return;
+    }
+
     if (roomId) {
       console.log('[Chat] Joining room:', roomId);
       joinRoom(roomId);
@@ -32,22 +47,19 @@ const MessageChat = ({ selectedUser }) => {
         setMessages(prev => [...prev, newMessage]);
         scrollToBottom();
         
-        // If the message is from the other user, mark it as read
         if (newMessage.sender !== user._id) {
           markAsRead(roomId);
         }
       };
 
-      // Set up message listeners
       onChatHistory(handleChatHistory);
       onReceiveMessage(handleNewMessage);
 
-      // Clean up on unmount or room change
       return () => {
         setMessages([]);
       };
     }
-  }, [roomId, user._id]);
+  }, [roomId, user?._id, selectedUser?._id]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -55,33 +67,43 @@ const MessageChat = ({ selectedUser }) => {
 
   const handleSendMessage = (e) => {
     e.preventDefault();
-    if (message.trim() && roomId) {
-      console.log('[Chat] Sending message:', {
-        roomId,
-        content: message.trim(),
-        sender: user._id,
-        receiver: selectedUser._id
+    if (!message.trim() || !roomId) {
+      console.error('[Chat] Cannot send message:', { 
+        hasMessage: Boolean(message.trim()), 
+        roomId 
       });
-      
-      sendMessage(roomId, message.trim());
-
-      // Optimistically add message to UI
-      const newMessage = {
-        content: message.trim(),
-        sender: user._id,
-        receiver: selectedUser._id,
-        timestamp: new Date().toISOString()
-      };
-      setMessages(prev => [...prev, newMessage]);
-      
-      setMessage('');
-      setIsTyping(false);
-      sendTypingIndicator(roomId, false);
-      scrollToBottom();
+      return;
     }
+
+    console.log('[Chat] Sending message:', {
+      roomId,
+      content: message.trim(),
+      sender: user._id,
+      receiver: selectedUser._id
+    });
+    
+    sendMessage(roomId, message.trim());
+
+    const newMessage = {
+      content: message.trim(),
+      sender: user._id,
+      receiver: selectedUser._id,
+      timestamp: new Date().toISOString()
+    };
+    setMessages(prev => [...prev, newMessage]);
+    
+    setMessage('');
+    setIsTyping(false);
+    sendTypingIndicator(roomId, false);
+    scrollToBottom();
   };
 
   const handleTyping = () => {
+    if (!roomId) {
+      console.error('[Chat] Cannot send typing indicator: No room ID');
+      return;
+    }
+
     if (!isTyping) {
       setIsTyping(true);
       sendTypingIndicator(roomId, true);
@@ -96,6 +118,16 @@ const MessageChat = ({ selectedUser }) => {
       sendTypingIndicator(roomId, false);
     }, 1000);
   };
+
+  if (!user?._id || !selectedUser?._id) {
+    return (
+      <Box sx={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Typography variant="body1" color="text.secondary">
+          Loading chat...
+        </Typography>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
