@@ -1,76 +1,119 @@
 import React, { useEffect, useState } from "react";
-import { useParams } from "react-router-dom"; // Importa useParams para obtener el parámetro de la URL
+import { useParams } from "react-router-dom";
 import axios from "axios";
-import Layout from "../components/Layout";
 
 function CourseView() {
-    const { id: courseId } = useParams(); // Obtén el ID del curso desde los parámetros de la URL
+    const { id: courseId } = useParams();
     const [course, setCourse] = useState(null);
     const [tabs, setTabs] = useState([]);
 
     useEffect(() => {
-        // Fetch course details
         const fetchCourse = async () => {
             try {
                 const response = await axios.get(`http://localhost:5000/courses/${courseId}`);
-                console.log("Course data:", response.data); // Verifica los datos del curso
                 setCourse(response.data);
             } catch (error) {
                 console.error("Error fetching course details:", error);
             }
         };
-    
-        // Fetch course tabs
+
         const fetchTabs = async () => {
             try {
                 const response = await axios.get(`http://localhost:5000/api/tabs/courses/${courseId}/tabs`);
-                console.log("Tabs data:", response.data); // Verifica los datos de los tabs
+                console.log("Tabs data:", response.data);
                 setTabs(response.data);
             } catch (error) {
                 console.error("Error fetching course tabs:", error);
             }
         };
-    
+
         fetchCourse();
         fetchTabs();
     }, [courseId]);
 
-    return (
-            <div className="container my-5">
-                {course ? (
-                    <>
-                        {/* Nombre del curso, logo y profesor */}
-                        <div className="d-flex align-items-center justify-content-center mb-4">
-                            {course.image ? (
-                                <img
-                                    src={`http://localhost:5000/courses/${courseId}/image`}
-                                    alt={`${course.name} logo`}
-                                    className="img-fluid me-4"
-                                    style={{
-                                        maxHeight: "200px", // Altura máxima
-                                        maxWidth: "200px",  // Ancho máximo
-                                        objectFit: "contain", // Mantiene la proporción de la imagen
-                                        borderRadius: "10px" // Bordes redondeados
-                                    }}
-                                />
-                            ) : (
-                                <p>No hay logo disponible.</p>
-                            )}
-                            <div>
-                                <h1 className="display-4 fw-bold">{course.name}</h1>
-                                <p className="text-muted fs-3">
-                                    <strong>Profesor:</strong> {course.teacher}
-                                </p>
-                            </div>
-                        </div>
+    const renderDocuments = (documents) => {
+        if (!documents || documents.length === 0) {
+            return <p className="text-muted">No hay documentos disponibles.</p>;
+        }
 
-                        {/* Contenido del curso */}
-                        <div className="card mt-4">
-                            <div className="card-body">
-                                <h5 className="card-title">Temas del Curso</h5>
-                                <div className="accordion" id="courseTabsAccordion">
-                                    {tabs.map((tab, index) => (
-                                        <div className="accordion-item" key={tab._id}>
+        return (
+            <ul className="list-group mt-2">
+                {documents.map((doc) => (
+                    <li key={doc._id} className="list-group-item">
+                        <p><strong>{doc.name}</strong></p>
+                    </li>
+                ))}
+            </ul>
+        );
+    };
+
+    const renderSubtabs = (subtabs, parentIndex) => (
+        <div className="accordion mt-2" id={`subtabsAccordion-${parentIndex}`}>
+            {subtabs.map((subtab, subIndex) => (
+                <div className="accordion-item" key={subtab._id}>
+                    <h2 className="accordion-header" id={`subtab-heading-${parentIndex}-${subIndex}`}>
+                        <button
+                            className="accordion-button collapsed"
+                            type="button"
+                            data-bs-toggle="collapse"
+                            data-bs-target={`#subtab-collapse-${parentIndex}-${subIndex}`}
+                            aria-expanded="false"
+                            aria-controls={`subtab-collapse-${parentIndex}-${subIndex}`}
+                        >
+                            {subtab.title}
+                        </button>
+                    </h2>
+                    <div
+                        id={`subtab-collapse-${parentIndex}-${subIndex}`}
+                        className="accordion-collapse collapse"
+                        aria-labelledby={`subtab-heading-${parentIndex}-${subIndex}`}
+                        data-bs-parent={`#subtabsAccordion-${parentIndex}`}
+                    >
+                        <div className="accordion-body">
+                            {subtab.contents && renderDocuments(subtab.contents)}
+                            {subtab.subtabs && renderSubtabs(subtab.subtabs, `${parentIndex}-${subIndex}`)}
+                        </div>
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+
+    return (
+        <div className="container my-5">
+            {course ? (
+                <>
+                    <div className="d-flex align-items-center justify-content-center mb-4">
+                        {course.image ? (
+                            <img
+                                src={`http://localhost:5000/courses/${courseId}/image`}
+                                alt={`${course.name} logo`}
+                                className="img-fluid me-4"
+                                style={{
+                                    maxHeight: "200px",
+                                    maxWidth: "200px",
+                                    objectFit: "contain",
+                                    borderRadius: "10px",
+                                }}
+                            />
+                        ) : (
+                            <p>No hay logo disponible.</p>
+                        )}
+                        <div>
+                            <h1 className="display-4 fw-bold">{course.name}</h1>
+                            <p className="text-muted fs-3">
+                                <strong>Profesor:</strong> {course.teacher}
+                            </p>
+                            <button className="btn btn-primary mt-3">Matricularse</button>
+                        </div>
+                    </div>
+
+                    <div className="card mt-4">
+                        <div className="card-body">
+                            <h5 className="card-title">Temas del Curso</h5>
+                            <div className="accordion" id="courseTabsAccordion">
+                                {tabs.map((tab, index) => (
+                                    <div className="accordion-item" key={tab._id}>
                                         <h2 className="accordion-header" id={`heading-${index}`}>
                                             <button
                                                 className="accordion-button"
@@ -90,29 +133,20 @@ function CourseView() {
                                             data-bs-parent="#courseTabsAccordion"
                                         >
                                             <div className="accordion-body">
-                                                {tab.contents && tab.contents.length > 0 ? (
-                                                    <ul className="list-group">
-                                                        {tab.contents.map((content) => (
-                                                            <li key={content._id} className="list-group-item">
-                                                                {content.title}
-                                                            </li>
-                                                        ))}
-                                                    </ul>
-                                                ) : (
-                                                    <p>No hay contenido disponible.</p>
-                                                )}
+                                                {tab.contents && renderDocuments(tab.contents)}
+                                                {tab.subtabs && renderSubtabs(tab.subtabs, index)}
                                             </div>
                                         </div>
                                     </div>
-                                    ))}
-                                </div>
+                                ))}
                             </div>
                         </div>
-                    </>
-                ) : (
-                    <p className="text-center">Cargando información del curso...</p>
-                )}
-            </div>
+                    </div>
+                </>
+            ) : (
+                <p className="text-center">Cargando información del curso...</p>
+            )}
+        </div>
     );
 }
 
