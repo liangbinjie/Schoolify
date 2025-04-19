@@ -25,13 +25,17 @@ const app = express();
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
   cors: {
-    origin: "http://localhost:5000", // Your frontend URL
-    methods: ["GET", "POST"]
+    origin: "http://localhost:5173", // Frontend Vite server URL
+    methods: ["GET", "POST"],
+    credentials: true
   }
 });
 
 // Middleware para analizar JSON y datos codificados en URL
-app.use(cors());
+app.use(cors({
+  origin: "http://localhost:5173",
+  credentials: true
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
