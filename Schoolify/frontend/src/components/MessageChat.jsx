@@ -186,10 +186,10 @@ const MessageChat = ({ selectedUser }) => {
                   maxWidth: '70%',
                   borderRadius: isSentByMe ? '20px 20px 0px 20px' : '20px 20px 20px 0px',
                   bgcolor: isSentByMe
-                    ? (isDarkMode ? '#E0E0E0' : '#000000')
+                    ? (isDarkMode ? '#E0E0E0' : '#F5F5F5')
                     : (isDarkMode ? '#2D2D2D' : '#FFFFFF'),
                   color: isSentByMe
-                    ? (isDarkMode ? '#000000' : '#FFFFFF')
+                    ? (isDarkMode ? '#000000' : '#000000')
                     : (isDarkMode ? '#FFFFFF' : '#000000'),
                   position: 'relative',
                   display: 'flex',
