@@ -2,8 +2,7 @@ import Redis from 'ioredis';
 
 // Create a new Redis client (single instance)
 const redis = new Redis({
-  host: 'discrete-eft-59351.upstash.io',
-  password: 'AefXAAIjcDFlMjExY2FhN2Y2MjA0OThiOWUyOGNhODNiODNhMmE2NnAxMA',
+  host: 'localhost',
   port: 6379,
   retryStrategy: (times) => {
     const delay = Math.min(times * 50, 2000);
