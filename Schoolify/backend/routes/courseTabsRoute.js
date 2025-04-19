@@ -90,7 +90,7 @@ tabsRouter.put("/courses/:courseId/tabs/:tabId", async (req, res) => {
         }
         
         // Encontrar el tab a actualizar
-        const tab = course.tabs.id(req.params.tabId);
+        const tabId = course.tabs.find(tab => tab._id === req.params.tabId)?._id;
         if (!tab) {
             return res.status(404).json({ message: "Tab no encontrado" });
         }

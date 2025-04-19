@@ -8,13 +8,13 @@ import enrollmentRouter from './routes/enrollmentRoute.js';
 import connectMongoDB from './db/mongoClient.js';
 import tabsRouter from './routes/courseTabsRoute.js';
 import fileRouter from './routes/fileRoute.js';
+import cassandraFileRouter from './routes/cassandraFileRoute.js';
 import evaluationRouter from "./routes/courseEvaluationsRoute.js";
 import authRouter from './routes/Auth/loginRoute.js';
 import friendRouter from './routes/friendRoute.js';
 import redis from './db/redis.js';
 import setupSocketIO from './routes/socket/msgSocket.js';
-
-
+import { initCassandra } from './db/cassandra.js';
 import neo4jRouter from './routes/neo4jRoutes/friends.js';
 
 const PORT = process.env.PORT || 5000;
@@ -49,7 +49,7 @@ app.use('/api/tabs', tabsRouter);
 app.use('/api/files', fileRouter);
 app.use("/api/evaluations", evaluationRouter);
 app.use("/api/friends", friendRouter);
-
+app.use('/api/cassandra-files', cassandraFileRouter); // Cambiamos la ruta para evitar confusiones
 app.use("/api/neo4j", neo4jRouter);
 
 app.get("/", (req, res) => {
@@ -58,6 +58,17 @@ app.get("/", (req, res) => {
 
 // Setup Socket.IO
 setupSocketIO(io);
+
+// Inicializar Cassandra una sola vez al inicio de la aplicación
+(async function() {
+  try {
+    await initCassandra();
+    console.log('✅ Cassandra inicializada correctamente al inicio de la aplicación');
+  } catch (err) {
+    console.error('❌ Error al inicializar Cassandra:', err);
+    // Decidir si quieres terminar la aplicación o continuar sin Cassandra
+  }
+})();
 
 try {
     await connectMongoDB(schoolify_uri);

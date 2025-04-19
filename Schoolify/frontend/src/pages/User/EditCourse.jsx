@@ -321,16 +321,157 @@ function GeneralSection({ courseId }) {
 function TopicsSection({ courseId }) {
     const [topics, setTopics] = useState([]);
     const [newTopic, setNewTopic] = useState({ title: "", description: "", order: 1, contents: [] });
-    const [newSubtopic, setNewSubtopic] = useState({ title: "", description: "", order: 1, contents: [] });
     const [expandedTopicId, setExpandedTopicId] = useState(null);
-    const [editingTopic, setEditingTopic] = useState(null); // Estado para el tema en edición
-    const [editingSubtopic, setEditingSubtopic] = useState(null); // Estado para el subtema en edición
+    const [editingTopic, setEditingTopic] = useState(null);
+    const [editingSubtopic, setEditingSubtopic] = useState(null);
+    const [uploadedFiles, setUploadedFiles] = useState({});
+    const [selectedFile, setSelectedFile] = useState(null);
+
+    const startEditingTopic = (topic) => {
+        setEditingTopic({
+            _id: topic._id,
+            title: topic.title,
+            description: topic.description,
+            order: topic.order
+        });
+    };
+
+    const startEditingSubtopic = (subtopic) => {
+        setEditingSubtopic({
+            _id: subtopic._id,
+            topicId: subtopic.topicId,
+            title: subtopic.title,
+            description: subtopic.description,
+            order: subtopic.order
+        });
+    };
+
+    const cancelEditingTopic = () => {
+        setEditingTopic(null);
+    };
+
+    const cancelEditingSubtopic = () => {
+        setEditingSubtopic(null);
+    };
+
+    const handleEditTopicChange = (e) => {
+        const { name, value } = e.target;
+        setEditingTopic(prev => ({
+            ...prev,
+            [name]: value
+        }));
+    };
+
+    const handleEditSubtopicChange = (e) => {
+        const { name, value } = e.target;
+        setEditingSubtopic(prev => ({
+            ...prev,
+            [name]: value
+        }));
+    };
+
+    const saveEditedTopic = async () => {
+        try {
+            await axios.put(`http://localhost:5000/api/tabs/courses/${courseId}/tabs/${editingTopic._id}`, {
+                title: editingTopic.title,
+                description: editingTopic.description,
+                order: editingTopic.order
+            });
+
+            setTopics(topics.map(topic => 
+                topic._id === editingTopic._id ? {
+                    ...topic,
+                    title: editingTopic.title,
+                    description: editingTopic.description,
+                    order: editingTopic.order
+                } : topic
+            ));
+
+            setEditingTopic(null);
+            alert("Tema actualizado correctamente");
+        } catch (error) {
+            console.error("Error al actualizar el tema:", error);
+            alert("Error al actualizar el tema");
+        }
+    };
+
+    const saveEditedSubtopic = async () => {
+        try {
+            const parentTopic = topics.find(topic => topic._id === editingSubtopic.topicId);
+
+            if (!parentTopic) {
+                throw new Error("No se encontró el tema padre");
+            }
+
+            const updatedSubtabs = parentTopic.subtabs.map(subtab => 
+                subtab._id === editingSubtopic._id ? {
+                    ...subtab,
+                    title: editingSubtopic.title,
+                    description: editingSubtopic.description,
+                    order: editingSubtopic.order
+                } : subtab
+            );
+
+            await axios.put(`http://localhost:5000/api/tabs/courses/${courseId}/tabs/${editingSubtopic.topicId}`, {
+                subtabs: updatedSubtabs
+            });
+
+            setTopics(topics.map(topic => 
+                topic._id === editingSubtopic.topicId ? {
+                    ...topic,
+                    subtabs: updatedSubtabs
+                } : topic
+            ));
+
+            setEditingSubtopic(null);
+            alert("Subtema actualizado correctamente");
+        } catch (error) {
+            console.error("Error al actualizar el subtema:", error);
+            alert("Error al actualizar el subtema");
+        }
+    };
+
+    const loadTopicFiles = async (topicId) => {
+        try {
+            const response = await axios.get(`http://localhost:5000/api/cassandra-files/list/topic/${courseId}/${topicId}`);
+            setUploadedFiles(prev => ({
+                ...prev,
+                [topicId]: response.data
+            }));
+        } catch (error) {
+            console.error("Error al cargar archivos:", error);
+        }
+    };
+
+    const loadSubtopicFiles = async (topicId, subtopicId) => {
+        try {
+            const response = await axios.get(
+                `http://localhost:5000/api/cassandra-files/list/subtopic/${courseId}/${topicId}/${subtopicId}`
+            );
+            setUploadedFiles(prev => ({
+                ...prev,
+                [`${topicId}_${subtopicId}`]: response.data
+            }));
+        } catch (error) {
+            console.error("Error al cargar archivos de subtema:", error);
+        }
+    };
 
     useEffect(() => {
         const fetchTopics = async () => {
             try {
                 const response = await axios.get(`http://localhost:5000/api/tabs/courses/${courseId}/tabs`);
                 setTopics(response.data);
+                
+                response.data.forEach(topic => {
+                    loadTopicFiles(topic._id);
+                    
+                    if (topic.subtabs && topic.subtabs.length > 0) {
+                        topic.subtabs.forEach(subtab => {
+                            loadSubtopicFiles(topic._id, subtab._id);
+                        });
+                    }
+                });
             } catch (error) {
                 console.error("Error al obtener los temas:", error);
             }
@@ -349,10 +490,66 @@ function TopicsSection({ courseId }) {
     };
 
     const handleTopicFileChange = (e) => {
-        const files = Array.from(e.target.files);
-        setNewTopic({ ...newTopic, contents: [...newTopic.contents, ...files] });
+        setSelectedFile(e.target.files[0]);
     };
 
+    const uploadFileToTopic = async (topicId) => {
+        if (!selectedFile) {
+            alert("Por favor seleccione un archivo para subir");
+            return;
+        }
+
+        try {
+            const formData = new FormData();
+            formData.append("file", selectedFile);
+            formData.append("title", selectedFile.name);
+            formData.append("uploadedBy", "current_user");
+
+            const response = await axios.post(
+                `http://localhost:5000/api/cassandra-files/upload/topic/${courseId}/${topicId}`,
+                formData,
+                { headers: { "Content-Type": "multipart/form-data" } }
+            );
+
+            loadTopicFiles(topicId);
+            setSelectedFile(null);
+            alert("Archivo subido correctamente a Cassandra");
+        } catch (error) {
+            console.error("Error al subir archivo:", error);
+            alert(`Error al subir el archivo: ${error.response?.data?.message || error.message}`);
+        }
+    };
+
+    const uploadFileToSubtopic = async (topicId, subtopicId) => {
+        if (!selectedFile) {
+            alert("Por favor seleccione un archivo para subir");
+            return;
+        }
+
+        try {
+            const formData = new FormData();
+            formData.append("file", selectedFile);
+            formData.append("title", selectedFile.name);
+            formData.append("uploadedBy", "current_user");
+
+            const response = await axios.post(
+                `http://localhost:5000/api/cassandra-files/upload/subtopic/${courseId}/${topicId}/${subtopicId}`,
+                formData,
+                { headers: { "Content-Type": "multipart/form-data" } }
+            );
+
+            loadSubtopicFiles(topicId, subtopicId);
+            setSelectedFile(null);
+            alert("Archivo subido correctamente al subtema en Cassandra");
+        } catch (error) {
+            console.error("Error al subir archivo al subtema:", error);
+            alert(`Error al subir el archivo al subtema: ${error.response?.data?.message || error.message}`);
+        }
+    };
+
+    const downloadFile = (fileId, fileName) => {
+        window.open(`http://localhost:5000/api/cassandra-files/download/${fileId}`, '_blank');
+    };
 
     const saveTopic = async () => {
         try {
@@ -360,7 +557,6 @@ function TopicsSection({ courseId }) {
             formData.append("title", newTopic.title);
             formData.append("description", newTopic.description);
             formData.append("order", newTopic.order);
-            newTopic.contents.forEach((file) => formData.append("contents", file));
 
             const response = await axios.post(
                 `http://localhost:5000/api/tabs/courses/${courseId}/tabs`,
@@ -368,92 +564,18 @@ function TopicsSection({ courseId }) {
                 { headers: { "Content-Type": "multipart/form-data" } }
             );
 
-            setTopics([...topics, response.data]);
+            const newTopicData = response.data.tab;
+            setTopics([...topics, newTopicData]);
             setNewTopic({ title: "", description: "", order: 1, contents: [] });
+
+            setUploadedFiles(prev => ({
+                ...prev,
+                [newTopicData._id]: []
+            }));
+
+            alert("Tema creado exitosamente");
         } catch (error) {
             console.error("Error al guardar el tema:", error);
-        }
-    };
-
-    const handleSubtopicInputChange = (e) => {
-        const { name, value } = e.target;
-        setNewSubtopic({ ...newSubtopic, [name]: value });
-    };
-
-    const handleSubtopicFileChange = (e) => {
-        const files = Array.from(e.target.files);
-        setNewSubtopic({ ...newSubtopic, contents: [...newSubtopic.contents, ...files] });
-    };
-
-    const saveSubtopic = async (topicId) => {
-        try {
-            const formData = new FormData();
-            formData.append("title", newSubtopic.title);
-            formData.append("description", newSubtopic.description);
-            formData.append("order", newSubtopic.order);
-
-            const response = await axios.post(
-                `http://localhost:5000/api/tabs/courses/${courseId}/tabs/${topicId}/subtabs`,
-                formData,
-                { headers: { "Content-Type": "multipart/form-data" } }
-            );
-
-            console.log("Respuesta del servidor:", response.data);
-        } catch (error) {
-            console.error("Error al guardar el subtema:", error);
-        }
-    };
-
-    const startEditingTopic = (topic) => {
-    console.log("Editando tema:", topic); // Verifica si el tema se pasa correctamente
-    setEditingTopic({ ...topic });
-    };
-
-    const saveEditedTopic = async () => {
-        try {
-            const response = await axios.put(
-                `http://localhost:5000/api/tabs/courses/${courseId}/tabs/${editingTopic._id}`,
-                editingTopic
-            );
-
-            setTopics((prevTopics) =>
-                prevTopics.map((topic) =>
-                    topic._id === editingTopic._id ? response.data : topic
-                )
-            );
-            setEditingTopic(null); // Cierra el formulario de edición
-        } catch (error) {
-            console.error("Error al editar el tema:", error);
-        }
-    };
-
-    const startEditingSubtopic = (subtopic) => {
-        console.log("Editando subtema:", subtopic); // Verifica si el subtema se pasa correctamente
-        setEditingSubtopic({ ...subtopic });
-    };
-
-    const saveEditedSubtopic = async (topicId) => {
-        try {
-            const response = await axios.put(
-                `http://localhost:5000/api/tabs/courses/${courseId}/tabs/${topicId}/subtabs/${editingSubtopic._id}`,
-                editingSubtopic
-            );
-
-            setTopics((prevTopics) =>
-                prevTopics.map((topic) =>
-                    topic._id === topicId
-                        ? {
-                              ...topic,
-                              subtabs: topic.subtabs.map((subtab) =>
-                                  subtab._id === editingSubtopic._id ? response.data : subtab
-                              ),
-                          }
-                        : topic
-                )
-            );
-            setEditingSubtopic(null);
-        } catch (error) {
-            console.error("Error al editar el subtema:", error);
         }
     };
 
@@ -461,7 +583,6 @@ function TopicsSection({ courseId }) {
         <div>
             <h2>Temas</h2>
 
-            {/* Formulario para añadir un nuevo tema */}
             <div className="card mb-4">
                 <div className="card-header">Agregar Tema</div>
                 <div className="card-body">
@@ -494,22 +615,12 @@ function TopicsSection({ courseId }) {
                             onChange={handleTopicInputChange}
                         />
                     </div>
-                    <div className="mb-3">
-                        <label className="form-label">Contenido (Archivos)</label>
-                        <input
-                            type="file"
-                            className="form-control"
-                            multiple
-                            onChange={handleTopicFileChange}
-                        />
-                    </div>
                     <button className="btn btn-primary" onClick={saveTopic}>
                         Guardar Tema
                     </button>
                 </div>
             </div>
 
-            {/* Lista de temas */}
             {topics.length > 0 ? (
                 topics.map((topic) => (
                     <div key={topic._id} className="card mb-3">
@@ -523,7 +634,7 @@ function TopicsSection({ courseId }) {
                                     {expandedTopicId === topic._id ? "Ocultar" : "Mostrar"}
                                 </button>
                                 <button
-                                    className="btn btn-warning btn-sm"
+                                    className="btn btn-warning btn-sm ms-2"
                                     onClick={() => startEditingTopic(topic)}
                                 >
                                     Editar
@@ -533,65 +644,93 @@ function TopicsSection({ courseId }) {
                         {expandedTopicId === topic._id && (
                             <div className="card-body">
                                 <p>{topic.description}</p>
+                                
+                                <div className="mb-4">
+                                    <h5>Archivos del tema</h5>
+                                    <div className="mb-3">
+                                        <input
+                                            type="file"
+                                            className="form-control mb-2"
+                                            onChange={handleTopicFileChange}
+                                        />
+                                        <button
+                                            className="btn btn-success btn-sm"
+                                            onClick={() => uploadFileToTopic(topic._id)}
+                                        >
+                                            Subir Archivo
+                                        </button>
+                                    </div>
+                                    
+                                    {uploadedFiles[topic._id] && uploadedFiles[topic._id].length > 0 ? (
+                                        <ul className="list-group">
+                                            {uploadedFiles[topic._id].map(file => (
+                                                <li key={file.file_id} className="list-group-item d-flex justify-content-between align-items-center">
+                                                    {file.filename}
+                                                    <button
+                                                        className="btn btn-primary btn-sm"
+                                                        onClick={() => downloadFile(file.file_id, file.filename)}
+                                                    >
+                                                        <i className="bi bi-download"></i> Descargar
+                                                    </button>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    ) : (
+                                        <p>No hay archivos subidos para este tema.</p>
+                                    )}
+                                </div>
+                                
                                 <h5>Subtemas</h5>
-                                <ul>
+                                <ul className="list-group mb-3">
                                     {(topic.subtabs || []).map((subtab) => (
-                                        <li key={subtab._id}>
-                                            {subtab.title}{" "}
-                                            <button
-                                                className="btn btn-warning btn-sm"
-                                                onClick={() => startEditingSubtopic(subtab)}
-                                            >
-                                                Editar
-                                            </button>
+                                        <li key={subtab._id} className="list-group-item">
+                                            <div className="d-flex justify-content-between mb-2">
+                                                <span>{subtab.title}</span>
+                                                <button
+                                                    className="btn btn-warning btn-sm"
+                                                    onClick={() => startEditingSubtopic({...subtab, topicId: topic._id})}
+                                                >
+                                                    Editar
+                                                </button>
+                                            </div>
+                                            
+                                            <div className="mt-2">
+                                                <h6>Archivos del subtema</h6>
+                                                <div className="mb-3">
+                                                    <input
+                                                        type="file"
+                                                        className="form-control mb-2"
+                                                        onChange={handleTopicFileChange}
+                                                    />
+                                                    <button
+                                                        className="btn btn-success btn-sm"
+                                                        onClick={() => uploadFileToSubtopic(topic._id, subtab._id)}
+                                                    >
+                                                        Subir Archivo
+                                                    </button>
+                                                </div>
+                                                
+                                                {uploadedFiles[`${topic._id}_${subtab._id}`] && uploadedFiles[`${topic._id}_${subtab._id}`].length > 0 ? (
+                                                    <ul className="list-group">
+                                                        {uploadedFiles[`${topic._id}_${subtab._id}`].map(file => (
+                                                            <li key={file.file_id} className="list-group-item d-flex justify-content-between align-items-center">
+                                                                {file.filename}
+                                                                <button
+                                                                    className="btn btn-primary btn-sm"
+                                                                    onClick={() => downloadFile(file.file_id, file.filename)}
+                                                                >
+                                                                    <i className="bi bi-download"></i> Descargar
+                                                                </button>
+                                                            </li>
+                                                        ))}
+                                                    </ul>
+                                                ) : (
+                                                    <p>No hay archivos subidos para este subtema.</p>
+                                                )}
+                                            </div>
                                         </li>
                                     ))}
                                 </ul>
-                                <h6>Agregar Subtema</h6>
-                                <div className="mb-3">
-                                    <label className="form-label">Título</label>
-                                    <input
-                                        type="text"
-                                        className="form-control"
-                                        name="title"
-                                        value={newSubtopic.title}
-                                        onChange={handleSubtopicInputChange}
-                                    />
-                                </div>
-                                <div className="mb-3">
-                                    <label className="form-label">Descripción</label>
-                                    <textarea
-                                        className="form-control"
-                                        name="description"
-                                        value={newSubtopic.description}
-                                        onChange={handleSubtopicInputChange}
-                                    ></textarea>
-                                </div>
-                                <div className="mb-3">
-                                    <label className="form-label">Orden</label>
-                                    <input
-                                        type="number"
-                                        className="form-control"
-                                        name="order"
-                                        value={newSubtopic.order}
-                                        onChange={handleSubtopicInputChange}
-                                    />
-                                </div>
-                                <div className="mb-3">
-                                    <label className="form-label">Contenido (Archivos)</label>
-                                    <input
-                                        type="file"
-                                        className="form-control"
-                                        multiple
-                                        onChange={handleSubtopicFileChange}
-                                    />
-                                </div>
-                                <button
-                                    className="btn btn-success"
-                                    onClick={() => saveSubtopic(topic._id)}
-                                >
-                                    Guardar Subtema
-                                </button>
                             </div>
                         )}
                     </div>
@@ -600,124 +739,130 @@ function TopicsSection({ courseId }) {
                 <p>No hay temas disponibles.</p>
             )}
 
-            {/* Formulario de edición de tema */}
             {editingTopic && (
-                <div className="modal">
-                    <div className="modal-content">
-                        <h3>Editar Tema</h3>
-                        <div className="mb-3">
-                            <label className="form-label">Título</label>
-                            <input
-                                type="text"
-                                className="form-control"
-                                name="title"
-                                value={editingTopic.title || ""}
-                                onChange={(e) =>
-                                    setEditingTopic({ ...editingTopic, title: e.target.value })
-                                }
-                            />
+                <div className="modal d-block" style={{ backgroundColor: "rgba(0,0,0,0.5)" }}>
+                    <div className="modal-dialog">
+                        <div className="modal-content">
+                            <div className="modal-header">
+                                <h5 className="modal-title">Editar Tema</h5>
+                                <button 
+                                    type="button" 
+                                    className="btn-close" 
+                                    onClick={cancelEditingTopic}
+                                ></button>
+                            </div>
+                            <div className="modal-body">
+                                <div className="mb-3">
+                                    <label className="form-label">Título</label>
+                                    <input
+                                        type="text"
+                                        className="form-control"
+                                        name="title"
+                                        value={editingTopic.title}
+                                        onChange={handleEditTopicChange}
+                                    />
+                                </div>
+                                <div className="mb-3">
+                                    <label className="form-label">Descripción</label>
+                                    <textarea
+                                        className="form-control"
+                                        name="description"
+                                        value={editingTopic.description}
+                                        onChange={handleEditTopicChange}
+                                    ></textarea>
+                                </div>
+                                <div className="mb-3">
+                                    <label className="form-label">Orden</label>
+                                    <input
+                                        type="number"
+                                        className="form-control"
+                                        name="order"
+                                        value={editingTopic.order}
+                                        onChange={handleEditTopicChange}
+                                    />
+                                </div>
+                            </div>
+                            <div className="modal-footer">
+                                <button 
+                                    type="button" 
+                                    className="btn btn-secondary" 
+                                    onClick={cancelEditingTopic}
+                                >
+                                    Cancelar
+                                </button>
+                                <button 
+                                    type="button" 
+                                    className="btn btn-primary" 
+                                    onClick={saveEditedTopic}
+                                >
+                                    Guardar Cambios
+                                </button>
+                            </div>
                         </div>
-                        <div className="mb-3">
-                            <label className="form-label">Descripción</label>
-                            <textarea
-                                className="form-control"
-                                name="description"
-                                value={editingTopic.description || ""}
-                                onChange={(e) =>
-                                    setEditingTopic({ ...editingTopic, description: e.target.value })
-                                }
-                            ></textarea>
-                        </div>
-                        <div className="mb-3">
-                            <label className="form-label">Orden</label>
-                            <input
-                                type="number"
-                                className="form-control"
-                                name="order"
-                                value={editingTopic.order || ""}
-                                onChange={(e) =>
-                                    setEditingTopic({ ...editingTopic, order: e.target.value })
-                                }
-                            />
-                        </div>
-                        <div className="mb-3">
-                            <label className="form-label">Contenido (Archivos)</label>
-                            <input
-                                type="file"
-                                className="form-control"
-                                multiple
-                                onChange={(e) => {
-                                    const files = Array.from(e.target.files);
-                                    setEditingTopic({ ...editingTopic, contents: files });
-                                }}
-                            />
-                        </div>
-                        <button className="btn btn-primary" onClick={saveEditedTopic}>
-                            Guardar Cambios
-                        </button>
-                        <button
-                            className="btn btn-secondary"
-                            onClick={() => setEditingTopic(null)}
-                        >
-                            Cancelar
-                        </button>
                     </div>
                 </div>
             )}
 
-            {/* Formulario de edición de subtema */}
             {editingSubtopic && (
-                <div className="modal">
-                    <div className="modal-content">
-                        <h3>Editar Subtema</h3>
-                        <div className="mb-3">
-                            <label className="form-label">Título</label>
-                            <input
-                                type="text"
-                                className="form-control"
-                                name="title"
-                                value={editingSubtopic.title || ""}
-                                onChange={(e) =>
-                                    setEditingSubtopic({ ...editingSubtopic, title: e.target.value })
-                                }
-                            />
+                <div className="modal d-block" style={{ backgroundColor: "rgba(0,0,0,0.5)" }}>
+                    <div className="modal-dialog">
+                        <div className="modal-content">
+                            <div className="modal-header">
+                                <h5 className="modal-title">Editar Subtema</h5>
+                                <button 
+                                    type="button" 
+                                    className="btn-close" 
+                                    onClick={cancelEditingSubtopic}
+                                ></button>
+                            </div>
+                            <div className="modal-body">
+                                <div className="mb-3">
+                                    <label className="form-label">Título</label>
+                                    <input
+                                        type="text"
+                                        className="form-control"
+                                        name="title"
+                                        value={editingSubtopic.title}
+                                        onChange={handleEditSubtopicChange}
+                                    />
+                                </div>
+                                <div className="mb-3">
+                                    <label className="form-label">Descripción</label>
+                                    <textarea
+                                        className="form-control"
+                                        name="description"
+                                        value={editingSubtopic.description}
+                                        onChange={handleEditSubtopicChange}
+                                    ></textarea>
+                                </div>
+                                <div className="mb-3">
+                                    <label className="form-label">Orden</label>
+                                    <input
+                                        type="number"
+                                        className="form-control"
+                                        name="order"
+                                        value={editingSubtopic.order}
+                                        onChange={handleEditSubtopicChange}
+                                    />
+                                </div>
+                            </div>
+                            <div className="modal-footer">
+                                <button 
+                                    type="button" 
+                                    className="btn btn-secondary" 
+                                    onClick={cancelEditingSubtopic}
+                                >
+                                    Cancelar
+                                </button>
+                                <button 
+                                    type="button" 
+                                    className="btn btn-primary" 
+                                    onClick={saveEditedSubtopic}
+                                >
+                                    Guardar Cambios
+                                </button>
+                            </div>
                         </div>
-                        <div className="mb-3">
-                            <label className="form-label">Orden</label>
-                            <input
-                                type="number"
-                                className="form-control"
-                                name="order"
-                                value={editingSubtopic.order || ""}
-                                onChange={(e) =>
-                                    setEditingSubtopic({ ...editingSubtopic, order: e.target.value })
-                                }
-                            />
-                        </div>
-                        <div className="mb-3">
-                            <label className="form-label">Contenido (Archivos)</label>
-                            <input
-                                type="file"
-                                className="form-control"
-                                multiple
-                                onChange={(e) => {
-                                    const files = Array.from(e.target.files);
-                                    setEditingSubtopic({ ...editingSubtopic, contents: files });
-                                }}
-                            />
-                        </div>
-                        <button
-                            className="btn btn-primary"
-                            onClick={() => saveEditedSubtopic(editingSubtopic.topicId)}
-                        >
-                            Guardar Cambios
-                        </button>
-                        <button
-                            className="btn btn-secondary"
-                            onClick={() => setEditingSubtopic(null)}
-                        >
-                            Cancelar
-                        </button>
                     </div>
                 </div>
             )}
