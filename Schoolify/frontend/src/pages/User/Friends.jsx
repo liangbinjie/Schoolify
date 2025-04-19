@@ -1,6 +1,7 @@
 import React, {useEffect, useState} from 'react';
 import { useAuth } from '../../context/AuthProvider'; // Importa el contexto de autenticación
 import axios from 'axios';
+import { Link } from 'react-router-dom';
 
 function Friends() {
     const { user, updateUser } = useAuth(); // Obtener el usuario del contexto
@@ -57,12 +58,9 @@ function Friends() {
                             <div className="card shadow-sm">
                                 <div className="card-body text-center">
                                     <h5 className="card-title font-weight-bold">{friend}</h5>
-                                    <a 
-                                        href={`http://localhost:5173/user/${friend}`} 
-                                        className="btn btn-primary mt-2 p-2 me-2"
-                                    >
+                                    <Link to={`/users/${friend}`} className="btn btn-primary mt-2 p-2 me-2">
                                         Ver Perfil
-                                    </a>
+                                    </Link>
                                     <button 
                                         onClick={() => {handleUnfriend(friend)} }
                                         className="btn btn-danger mt-2 p-2"

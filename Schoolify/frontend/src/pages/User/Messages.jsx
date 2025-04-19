@@ -1,14 +1,19 @@
 import React, { useState } from 'react';
 import MessageList from '../../components/MessageList';
 import MessageChat from '../../components/MessageChat';
+import axios from 'axios';
 
 const Messages = () => {
-  const [selectedFriend, setSelectedFriend] = useState(null);
-  const [roomId, setRoomId] = useState(null);
+  const [selectedUser, setSelectedUser] = useState(null);
 
-  const handleSelectChat = (friendUsername, chatRoomId) => {
-    setSelectedFriend(friendUsername);
-    setRoomId(chatRoomId);
+  const handleSelectChat = async (friendUsername) => {
+    try {
+      // Fetch complete user data when a friend is selected
+      const response = await axios.get(`http://localhost:5000/users/${friendUsername}`);
+      setSelectedUser(response.data);
+    } catch (error) {
+      console.error('Error fetching user data:', error);
+    }
   };
 
   return (
@@ -26,11 +31,8 @@ const Messages = () => {
         
         <div className="col-md-8">
           <div className="card shadow-sm h-100">
-            {selectedFriend ? (
-              <MessageChat 
-                friendUsername={selectedFriend} 
-                roomId={roomId} 
-              />
+            {selectedUser ? (
+              <MessageChat selectedUser={selectedUser} />
             ) : (
               <div className="d-flex align-items-center justify-content-center h-100 p-5 text-center">
                 <div>

@@ -14,8 +14,8 @@ function ProfilePage() {
         birthDate: user.birthDate,
     });
     const [profilePicture, setProfilePicture] = useState(null); // Estado para la imagen de perfil
-    const image = `http://localhost:5000/user/${user.username}/profile-picture`; // URL de la imagen de perfil
-    const updateURL = `http://localhost:5000/user/${user._id}` // URL para actualizar el perfil
+    const image = `http://localhost:5000/users/${user.username}/profile-picture`; // URL de la imagen de perfil
+    const updateURL = `http://localhost:5000/users/${user._id}` // URL para actualizar el perfil
 
     // HANDLERS
     const handleTogglePasswordEdit = () => {

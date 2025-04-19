@@ -9,7 +9,7 @@ function FriendRequests() {
     const fetchUser = useCallback(async () => {
         if (!user?.username) return;
         try {
-            const response = await axios.get(`http://localhost:5000/user/${user.username}`);
+            const response = await axios.get(`http://localhost:5000/users/${user.username}`);
             const userData = response.data;
             updateUser(userData);
             setRequests(userData.receivedRequests || []);

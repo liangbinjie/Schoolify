@@ -4,6 +4,8 @@ import { useParams } from 'react-router-dom';
 import axios from "axios";
 import { useAuth } from "../../context/AuthProvider"; // Importa el contexto de autenticación
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 function UserProfile() {
     const { username } = useParams();
     const [userProfile, setUserProfile] = useState(null);
@@ -19,9 +21,9 @@ function UserProfile() {
 
     const fetchUserData = async () => {
         try {
-            const response = await axios.get(`http://localhost:5000/user/${username}`);
+            const response = await axios.get(`${API_URL}/users/${username}`);
             setUserProfile(response.data);
-            setProfilePicture(`http://localhost:5000/user/${username}/profile-picture`);
+            setProfilePicture(`${API_URL}/users/${username}/profile-picture`);
         } catch (err) {
             console.error("Error fetching user data:", err);
         } finally {
@@ -32,7 +34,7 @@ function UserProfile() {
     useEffect(() => {
         const fetchFriends = async () => {
             try {
-                const response = await axios.get(`http://localhost:5000/api/neo4j/get-friends/${user.username}`);
+                const response = await axios.get(`${API_URL}/api/neo4j/get-friends/${user.username}`);
                 setFriends(response.data.friends); // Actualiza el estado con la lista de amigos
             } catch (error) {
                 console.error('Error fetching user data:', error);
@@ -50,7 +52,7 @@ function UserProfile() {
             console.log("Sending friend request to:", friendUsername);
             console.log("Current user:", user.username);
     
-            const response = await axios.post(`http://localhost:5000/api/friends/send-friend-request/${friendUsername}`, {
+            const response = await axios.post(`${API_URL}/api/friends/send-friend-request/${friendUsername}`, {
                 username: user.username, // Asegúrate de que user.username no sea undefined
             });
 
