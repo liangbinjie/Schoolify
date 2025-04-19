@@ -16,12 +16,13 @@ import UserCourses from "./pages/User/UserCourses.jsx";
 import EditCourse from "./pages/User/EditCourse.jsx";
 import { AuthRoute, NotAuthRoute } from "./context/AuthRoute.jsx";
 import { useAuth } from "./context/AuthProvider";
+import { ThemeProvider } from './context/ThemeProvider';
 
 function App() {
     const { user } = useAuth(); // Obtén el usuario autenticado
 
     return (
-        <>
+        <ThemeProvider>
             <Navbar />
             <Routes>
                 <Route path="/" element={<Home />} />
@@ -47,7 +48,7 @@ function App() {
                     <Route path="/edit-course/:courseId" element={<EditCourse />} />
                 </Route>
             </Routes>
-        </>
+        </ThemeProvider>
     );
 }
 

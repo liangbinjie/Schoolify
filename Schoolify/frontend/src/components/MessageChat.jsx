@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useSocket } from '../context/SocketProvider';
 import { useAuth } from '../context/AuthProvider';
-import { Box, TextField, Button, Typography, Paper, Avatar } from '@mui/material';
-import { Send as SendIcon } from '@mui/icons-material';
+import { useTheme } from '../context/ThemeProvider';
+import { Box, TextField, Button, Typography, Paper, Avatar, IconButton } from '@mui/material';
+import { Send as SendIcon, DarkMode as DarkModeIcon, LightMode as LightModeIcon } from '@mui/icons-material';
 
 const MessageChat = ({ selectedUser }) => {
   const [message, setMessage] = useState('');
@@ -12,10 +13,11 @@ const MessageChat = ({ selectedUser }) => {
   const messagesEndRef = useRef(null);
   const { socket, joinRoom, sendMessage, markAsRead, sendTypingIndicator, onChatHistory, onReceiveMessage, typingUsers } = useSocket();
   const { user } = useAuth();
+  const { isDarkMode, toggleTheme } = useTheme();
 
   // Create room ID only if both user IDs are available
-  const roomId = user?._id && selectedUser?._id 
-    ? [user._id, selectedUser._id].sort().join('-') 
+  const roomId = user?._id && selectedUser?._id
+    ? [user._id, selectedUser._id].sort().join('-')
     : null;
 
   useEffect(() => {
@@ -24,9 +26,9 @@ const MessageChat = ({ selectedUser }) => {
     console.log('[Chat] Room ID:', roomId);
 
     if (!user?._id || !selectedUser?._id) {
-      console.error('[Chat] Missing user IDs:', { 
-        currentUserId: user?._id, 
-        selectedUserId: selectedUser?._id 
+      console.error('[Chat] Missing user IDs:', {
+        currentUserId: user?._id,
+        selectedUserId: selectedUser?._id
       });
       return;
     }
@@ -46,7 +48,7 @@ const MessageChat = ({ selectedUser }) => {
         console.log('[Chat] Received new message:', newMessage);
         setMessages(prev => [...prev, newMessage]);
         scrollToBottom();
-        
+
         if (newMessage.sender !== user._id) {
           markAsRead(roomId);
         }
@@ -68,9 +70,9 @@ const MessageChat = ({ selectedUser }) => {
   const handleSendMessage = (e) => {
     e.preventDefault();
     if (!message.trim() || !roomId) {
-      console.error('[Chat] Cannot send message:', { 
-        hasMessage: Boolean(message.trim()), 
-        roomId 
+      console.error('[Chat] Cannot send message:', {
+        hasMessage: Boolean(message.trim()),
+        roomId
       });
       return;
     }
@@ -81,7 +83,7 @@ const MessageChat = ({ selectedUser }) => {
       sender: user._id,
       receiver: selectedUser._id
     });
-    
+
     sendMessage(roomId, message.trim());
     setMessage('');
     setIsTyping(false);
@@ -121,26 +123,46 @@ const MessageChat = ({ selectedUser }) => {
   }
 
   return (
-    <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <Paper elevation={3} sx={{ p: 2, mb: 2 }}>
+    <Box sx={{
+      height: '100%',
+      display: 'flex',
+      flexDirection: 'column',
+      bgcolor: isDarkMode ? '#121212' : '#FFFFFF'
+    }}>
+      <Paper
+        elevation={3}
+        sx={{
+          p: 2,
+          mb: 2,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          bgcolor: isDarkMode ? '#1E1E1E' : '#FFFFFF'
+        }}
+      >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <Avatar src={selectedUser?.profilePicture} alt={selectedUser?.username}>
             {selectedUser?.username?.[0]?.toUpperCase()}
           </Avatar>
           <Box>
-            <Typography variant="h6">{selectedUser?.username}</Typography>
+            <Typography variant="h6" color={isDarkMode ? 'white' : 'text.primary'}>
+              {selectedUser?.username}
+            </Typography>
             {typingUsers[selectedUser?.username] && (
-              <Typography variant="caption" color="textSecondary">
+              <Typography variant="caption" color={isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'textSecondary'}>
                 typing...
               </Typography>
             )}
           </Box>
         </Box>
+        <IconButton onClick={toggleTheme} sx={{ color: isDarkMode ? 'white' : 'text.primary' }}>
+          {isDarkMode ? <LightModeIcon /> : <DarkModeIcon />}
+        </IconButton>
       </Paper>
 
-      <Box sx={{ 
-        flexGrow: 1, 
-        overflowY: 'auto', 
+      <Box sx={{
+        flexGrow: 1,
+        overflowY: 'auto',
         p: 2,
         display: 'flex',
         flexDirection: 'column',
@@ -162,48 +184,39 @@ const MessageChat = ({ selectedUser }) => {
                 sx={{
                   p: 1.5,
                   maxWidth: '70%',
-                  borderRadius: 2,
-                  bgcolor: isSentByMe ? '#0084FF' : '#E4E6EB',
-                  color: isSentByMe ? 'white' : 'text.primary',
+                  borderRadius: isSentByMe ? '20px 20px 0px 20px' : '20px 20px 20px 0px',
+                  bgcolor: isSentByMe
+                    ? (isDarkMode ? '#FFFFFF' : '#000000')
+                    : (isDarkMode ? '#2D2D2D' : '#FFFFFF'),
+                  color: isSentByMe
+                    ? (isDarkMode ? '#000000' : '#FFFFFF')
+                    : (isDarkMode ? '#FFFFFF' : '#000000'),
                   position: 'relative',
-                  '&::before': {
-                    content: '""',
-                    position: 'absolute',
-                    width: 0,
-                    height: 0,
-                    borderStyle: 'solid',
-                    ...(isSentByMe ? {
-                      borderWidth: '8px 0 8px 8px',
-                      borderColor: 'transparent transparent transparent #0084FF',
-                      right: -8,
-                      top: '50%',
-                      transform: 'translateY(-50%)'
-                    } : {
-                      borderWidth: '8px 8px 8px 0',
-                      borderColor: 'transparent #E4E6EB transparent transparent',
-                      left: -8,
-                      top: '50%',
-                      transform: 'translateY(-50%)'
-                    })
-                  }
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 0.5
                 }}
               >
-                <Typography 
-                  variant="body1" 
-                  sx={{ 
+                <Typography
+                  variant="body1"
+                  sx={{
                     wordBreak: 'break-word',
-                    whiteSpace: 'pre-wrap'
+                    whiteSpace: 'pre-wrap',
+                    lineHeight: 1.4
                   }}
                 >
                   {msg.content}
                 </Typography>
-                <Typography 
-                  variant="caption" 
-                  sx={{ 
-                    display: 'block', 
-                    mt: 0.5,
-                    opacity: 0.8,
-                    fontSize: '0.7rem'
+                <Typography
+                  variant="caption"
+                  sx={{
+                    display: 'flex',
+                    justifyContent: 'flex-end',
+                    opacity: 0.7,
+                    fontSize: '0.7rem',
+                    color: isSentByMe
+                      ? (isDarkMode ? 'rgba(0, 0, 0, 0.7)' : 'rgba(255, 255, 255, 0.7)')
+                      : (isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.7)')
                   }}
                 >
                   {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -223,7 +236,8 @@ const MessageChat = ({ selectedUser }) => {
           display: 'flex',
           gap: 1,
           borderTop: '1px solid',
-          borderColor: 'divider'
+          borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.12)' : 'divider',
+          bgcolor: isDarkMode ? '#1E1E1E' : '#FFFFFF'
         }}
       >
         <TextField
@@ -238,7 +252,21 @@ const MessageChat = ({ selectedUser }) => {
           size="small"
           sx={{
             '& .MuiOutlinedInput-root': {
-              borderRadius: 3
+              borderRadius: 3,
+              bgcolor: isDarkMode ? '#2D2D2D' : '#FFFFFF',
+              color: isDarkMode ? 'white' : 'text.primary',
+              '& fieldset': {
+                borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.12)' : 'rgba(0, 0, 0, 0.12)',
+              },
+              '&:hover fieldset': {
+                borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.3)',
+              },
+            },
+            '& .MuiInputBase-input': {
+              color: isDarkMode ? 'white' : 'text.primary',
+            },
+            '& .MuiInputBase-input::placeholder': {
+              color: isDarkMode ? 'rgba(255, 255, 255, 0.5)' : 'rgba(0, 0, 0, 0.5)',
             }
           }}
         />
@@ -249,9 +277,10 @@ const MessageChat = ({ selectedUser }) => {
           disabled={!message.trim()}
           sx={{
             borderRadius: 2,
-            bgcolor: '#0084FF',
+            bgcolor: isDarkMode ? '#FFFFFF' : '#000000',
+            color: isDarkMode ? '#000000' : '#FFFFFF',
             '&:hover': {
-              bgcolor: '#0073E6'
+              bgcolor: isDarkMode ? 'rgba(255, 255, 255, 0.9)' : 'rgba(0, 0, 0, 0.9)'
             }
           }}
         >
