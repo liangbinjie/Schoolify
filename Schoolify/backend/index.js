@@ -11,8 +11,8 @@ import fileRouter from './routes/fileRoute.js';
 import evaluationRouter from "./routes/courseEvaluationsRoute.js";
 import authRouter from './routes/Auth/loginRoute.js';
 import friendRouter from './routes/friendRoute.js';
-// import redis from './db/redis.js';
-// import setupSocketIO from './routes/socket/msgSocket.js';
+import redis from './db/redis.js';
+import setupSocketIO from './routes/socket/msgSocket.js';
 
 import neo4jRouter from './routes/neo4jRoutes/friends.js';
 
@@ -34,10 +34,10 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Redis middleware
-// app.use((req, res, next) => {
-//     req.redis = redis;
-//     next();
-// });
+app.use((req, res, next) => {
+    req.redis = redis;
+    next();
+});
 
 // Rutas
 app.use("/user", userRouter);
@@ -56,7 +56,7 @@ app.get("/", (req, res) => {
 });
 
 // Setup Socket.IO
-// setupSocketIO(io);
+setupSocketIO(io);
 
 try {
     await connectMongoDB(schoolify_uri);
