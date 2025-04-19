@@ -14,7 +14,10 @@ import friendRouter from './routes/friendRoute.js';
 import redis from './db/redis.js';
 import setupSocketIO from './routes/socket/msgSocket.js';
 
-const PORT = 5000;
+
+import neo4jRouter from './routes/neo4jRoutes/friends.js';
+
+const PORT = process.env.PORT || 5000;
 const schoolify_uri = process.env.MONGO_SCHOOLIFY_DB_URI;
 
 const app = express();
@@ -47,6 +50,8 @@ app.use('/api/files', fileRouter);
 app.use("/api/evaluations", evaluationRouter);
 app.use("/api/friends", friendRouter);
 
+app.use("/api/neo4j", neo4jRouter);
+
 app.get("/", (req, res) => {
     return res.status(234).send("hello world");
 });
@@ -58,8 +63,8 @@ try {
     await connectMongoDB(schoolify_uri);
     
     // Test Redis connection
-    await redis.ping();
-    console.log('Redis connection successful');
+    // await redis.ping();
+    // console.log('Redis connection successful');
 
     httpServer.listen(PORT, () =>
         console.log(`Listening on port ${PORT}`)

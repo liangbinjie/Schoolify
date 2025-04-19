@@ -10,6 +10,7 @@ function UserProfile() {
     const [loading, setLoading] = useState(true);
     const [profilePicture, setProfilePicture] = useState(null);
     const { user } = useAuth(); // Obtener el usuario del contexto
+    const [friends, setFriends] = useState([]); // Estado para almacenar los amigos
 
     if (!user || !user.username) {
         console.error("El usuario no está autenticado o no tiene un nombre de usuario válido.");
@@ -29,6 +30,15 @@ function UserProfile() {
     };
 
     useEffect(() => {
+        const fetchFriends = async () => {
+            try {
+                const response = await axios.get(`http://localhost:5000/api/neo4j/get-friends/${user.username}`);
+                setFriends(response.data.friends); // Actualiza el estado con la lista de amigos
+            } catch (error) {
+                console.error('Error fetching user data:', error);
+            }
+        }
+        fetchFriends();
         fetchUserData();
     }, [username]);
 
@@ -91,7 +101,7 @@ function UserProfile() {
                     <p><strong>Nombre:</strong> {userProfile.firstName} {userProfile.lastName}</p>
                     <p><strong>Fecha de Nacimiento:</strong> {userProfile.birthDate}</p>
                     <p><strong>Correo Electrónico:</strong> {userProfile.email}</p>
-                    { userProfile.username === user.username || (user.friends && user.friends.includes(username)) ? (
+                    { userProfile.username === user.username || (friends && friends.includes(username)) ? (
                         <></>
                     ) : (
                         <button className="btn btn-primary" onClick={() => {

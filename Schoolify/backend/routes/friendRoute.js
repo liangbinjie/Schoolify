@@ -5,7 +5,6 @@ const friendRouter = express.Router();
 
 // Send friend request 
 friendRouter.post("/send-friend-request/:friendUsername", async (req, res) => {
-    console.log(req)
     const { friendUsername } = req.params;
     const { username } = req.body; // body contains the username of the user sending the request
     console.log("Add Friend Request: ", { friendUsername, username });
