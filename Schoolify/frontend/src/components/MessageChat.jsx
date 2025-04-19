@@ -4,36 +4,50 @@ import { useAuth } from '../context/AuthProvider';
 import { Box, TextField, Button, Typography, Paper, Avatar } from '@mui/material';
 import { Send as SendIcon } from '@mui/icons-material';
 
-const MessageChat = ({ friendUsername, roomId }) => {
+const MessageChat = ({ selectedUser }) => {
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState([]);
   const [isTyping, setIsTyping] = useState(false);
   const typingTimeoutRef = useRef(null);
   const messagesEndRef = useRef(null);
-  const { sendMessage, onChatHistory, onReceiveMessage, sendTypingIndicator, typingUsers, joinRoom, markAsRead } = useSocket();
+  const { socket, joinRoom, sendMessage, markAsRead, sendTypingIndicator, onChatHistory, onReceiveMessage, typingUsers } = useSocket();
   const { user } = useAuth();
+
+  const roomId = selectedUser ? [user._id, selectedUser._id].sort().join('-') : null;
 
   useEffect(() => {
     if (roomId) {
-      console.log('Joining room:', roomId);
+      console.log('[Chat] Joining room:', roomId);
       joinRoom(roomId);
       markAsRead(roomId);
 
-      // Listen for chat history
-      onChatHistory((history) => {
-        console.log('Received chat history:', history);
-        setMessages(history);
+      const handleChatHistory = (history) => {
+        console.log('[Chat] Received history:', history);
+        setMessages(history || []);
         scrollToBottom();
-      });
+      };
 
-      // Listen for new messages
-      onReceiveMessage((newMessage) => {
-        console.log('Received new message:', newMessage);
+      const handleNewMessage = (newMessage) => {
+        console.log('[Chat] Received new message:', newMessage);
         setMessages(prev => [...prev, newMessage]);
         scrollToBottom();
-      });
+        
+        // If the message is from the other user, mark it as read
+        if (newMessage.sender !== user._id) {
+          markAsRead(roomId);
+        }
+      };
+
+      // Set up message listeners
+      onChatHistory(handleChatHistory);
+      onReceiveMessage(handleNewMessage);
+
+      // Clean up on unmount or room change
+      return () => {
+        setMessages([]);
+      };
     }
-  }, [roomId]);
+  }, [roomId, user._id]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -42,22 +56,12 @@ const MessageChat = ({ friendUsername, roomId }) => {
   const handleSendMessage = (e) => {
     e.preventDefault();
     if (message.trim() && roomId) {
-      console.log('Attempting to send message:', {
+      console.log('[Chat] Sending message:', {
         roomId,
-        user,
-        friendUsername,
-        message
+        message: message.trim()
       });
-
-      const messageData = {
-        content: message,
-        sender: user._id,
-        receiver: friendUsername,
-        timestamp: new Date().toISOString()
-      };
-
-      console.log('Formatted message data:', messageData);
-      sendMessage(roomId, messageData);
+      
+      sendMessage(roomId, message.trim());
       setMessage('');
       setIsTyping(false);
       sendTypingIndicator(roomId, false);
@@ -80,20 +84,16 @@ const MessageChat = ({ friendUsername, roomId }) => {
     }, 1000);
   };
 
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      handleSendMessage(e);
-    }
-  };
-
   return (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <Paper elevation={3} sx={{ p: 2, mb: 2 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Avatar>{friendUsername?.[0]?.toUpperCase()}</Avatar>
+          <Avatar src={selectedUser?.profilePicture} alt={selectedUser?.username}>
+            {selectedUser?.username?.[0]?.toUpperCase()}
+          </Avatar>
           <Box>
-            <Typography variant="h6">{friendUsername}</Typography>
-            {typingUsers[friendUsername] && (
+            <Typography variant="h6">{selectedUser?.username}</Typography>
+            {typingUsers[selectedUser?.username] && (
               <Typography variant="caption" color="textSecondary">
                 typing...
               </Typography>
@@ -102,32 +102,80 @@ const MessageChat = ({ friendUsername, roomId }) => {
         </Box>
       </Paper>
 
-      <Box sx={{ flexGrow: 1, overflowY: 'auto', p: 2 }}>
-        {messages.map((msg, index) => (
-          <Box
-            key={index}
-            sx={{
-              display: 'flex',
-              justifyContent: msg.sender === user.username ? 'flex-end' : 'flex-start',
-              mb: 2,
-            }}
-          >
-            <Paper
-              elevation={1}
+      <Box sx={{ 
+        flexGrow: 1, 
+        overflowY: 'auto', 
+        p: 2,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 2
+      }}>
+        {messages.map((msg, index) => {
+          const isSentByMe = msg.sender === user._id;
+          return (
+            <Box
+              key={index}
               sx={{
-                p: 2,
-                maxWidth: '70%',
-                bgcolor: msg.sender === user.username ? 'primary.main' : 'grey.100',
-                color: msg.sender === user.username ? 'white' : 'text.primary',
+                display: 'flex',
+                justifyContent: isSentByMe ? 'flex-end' : 'flex-start',
+                width: '100%'
               }}
             >
-              <Typography variant="body1">{msg.content}</Typography>
-              <Typography variant="caption" sx={{ display: 'block', mt: 1 }}>
-                {new Date(msg.timestamp).toLocaleTimeString()}
-              </Typography>
-            </Paper>
-          </Box>
-        ))}
+              <Paper
+                elevation={0}
+                sx={{
+                  p: 1.5,
+                  maxWidth: '70%',
+                  borderRadius: 2,
+                  bgcolor: isSentByMe ? '#0084FF' : '#E4E6EB',
+                  color: isSentByMe ? 'white' : 'text.primary',
+                  position: 'relative',
+                  '&::before': {
+                    content: '""',
+                    position: 'absolute',
+                    width: 0,
+                    height: 0,
+                    borderStyle: 'solid',
+                    ...(isSentByMe ? {
+                      borderWidth: '8px 0 8px 8px',
+                      borderColor: 'transparent transparent transparent #0084FF',
+                      right: -8,
+                      top: '50%',
+                      transform: 'translateY(-50%)'
+                    } : {
+                      borderWidth: '8px 8px 8px 0',
+                      borderColor: 'transparent #E4E6EB transparent transparent',
+                      left: -8,
+                      top: '50%',
+                      transform: 'translateY(-50%)'
+                    })
+                  }
+                }}
+              >
+                <Typography 
+                  variant="body1" 
+                  sx={{ 
+                    wordBreak: 'break-word',
+                    whiteSpace: 'pre-wrap'
+                  }}
+                >
+                  {msg.content}
+                </Typography>
+                <Typography 
+                  variant="caption" 
+                  sx={{ 
+                    display: 'block', 
+                    mt: 0.5,
+                    opacity: 0.8,
+                    fontSize: '0.7rem'
+                  }}
+                >
+                  {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </Typography>
+              </Paper>
+            </Box>
+          );
+        })}
         <div ref={messagesEndRef} />
       </Box>
 
@@ -139,7 +187,7 @@ const MessageChat = ({ friendUsername, roomId }) => {
           display: 'flex',
           gap: 1,
           borderTop: '1px solid',
-          borderColor: 'divider',
+          borderColor: 'divider'
         }}
       >
         <TextField
@@ -151,14 +199,25 @@ const MessageChat = ({ friendUsername, roomId }) => {
             setMessage(e.target.value);
             handleTyping();
           }}
-          onKeyPress={handleKeyPress}
           size="small"
+          sx={{
+            '& .MuiOutlinedInput-root': {
+              borderRadius: 3
+            }
+          }}
         />
         <Button
           type="submit"
           variant="contained"
           endIcon={<SendIcon />}
           disabled={!message.trim()}
+          sx={{
+            borderRadius: 2,
+            bgcolor: '#0084FF',
+            '&:hover': {
+              bgcolor: '#0073E6'
+            }
+          }}
         >
           Send
         </Button>
