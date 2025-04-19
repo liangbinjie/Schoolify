@@ -187,7 +187,7 @@ const MessageChat = ({ selectedUser }) => {
                   borderRadius: isSentByMe ? '20px 20px 0px 20px' : '20px 20px 20px 0px',
                   bgcolor: isSentByMe
                     ? (isDarkMode ? '#E0E0E0' : '#F5F5F5')
-                    : (isDarkMode ? '#2D2D2D' : '#FFFFFF'),
+                    : (isDarkMode ? '#2D2D2D' : '#F5F5F5'),
                   color: isSentByMe
                     ? (isDarkMode ? '#000000' : '#000000')
                     : (isDarkMode ? '#FFFFFF' : '#000000'),
