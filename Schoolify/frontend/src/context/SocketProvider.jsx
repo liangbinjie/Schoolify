@@ -12,7 +12,7 @@ export const SocketProvider = ({ children }) => {
 
   useEffect(() => {
     if (isAuthenticated && user) {
-      // Connect to the socket server
+      // Conexion con el socket
       const newSocket = io('http://localhost:5000', {
         query: {
           userId: user._id,
@@ -35,10 +35,10 @@ export const SocketProvider = ({ children }) => {
         setUnreadMessages(prev => [...prev, message]);
       });
 
-      // Listen for messages in the chat room
+      // Escuchar nuevos mensajes
       newSocket.on('receiveMessage', (message) => {
         console.log('Message received in room:', message);
-        // The MessageChat component will handle updating its messages state
+        // The MessageChat component will handle updating its messages state  
       });
 
       // Listen for chat history
@@ -72,45 +72,66 @@ export const SocketProvider = ({ children }) => {
   // Function to join a chat room
   const joinRoom = (roomId) => {
     if (socket) {
-      console.log('Joining room:', roomId);
+      console.log('[SocketProvider] Joining room:', roomId);
       socket.emit('joinRoom', { roomId });
+    } else {
+      console.error('[SocketProvider] Cannot join room - socket not connected');
     }
   };
 
   // Function to send a message
   const sendMessage = (roomId, message) => {
     if (socket) {
-      console.log('Sending message to room:', roomId, message);
+      console.log('[SocketProvider] Sending message:', { roomId, message });
       socket.emit('sendMessage', { roomId, message });
+    } else {
+      console.error('[SocketProvider] Cannot send message - socket not connected');
     }
   };
 
   // Function to mark messages as read
   const markAsRead = (roomId) => {
     if (socket && user) {
-      console.log('Marking messages as read in room:', roomId);
+      console.log('[SocketProvider] Marking messages as read:', { roomId, username: user.username });
       socket.emit('markAsRead', { roomId, username: user.username });
+    } else {
+      console.error('[SocketProvider] Cannot mark messages as read - socket not connected or user not available');
     }
   };
 
   // Function to send typing indicator
   const sendTypingIndicator = (roomId, isTyping) => {
     if (socket && user) {
+      console.log('[SocketProvider] Sending typing indicator:', { roomId, username: user.username, isTyping });
       socket.emit('typing', { roomId, username: user.username, isTyping });
+    } else {
+      console.error('[SocketProvider] Cannot send typing indicator - socket not connected or user not available');
     }
   };
 
   // Function to listen for chat history
   const onChatHistory = (callback) => {
     if (socket) {
-      socket.on('chatHistory', callback);
+      console.log('[SocketProvider] Setting up chat history listener');
+      socket.on('chatHistory', (history) => {
+        console.log('[SocketProvider] Received chat history:', history);
+        callback(history);
+      });
+    } else {
+      console.error('[SocketProvider] Cannot set up chat history listener - socket not connected');
     }
   };
 
   // Function to listen for new messages
   const onReceiveMessage = (callback) => {
     if (socket) {
-      socket.on('receiveMessage', callback);
+      console.log('[SocketProvider] Setting up message receiver');
+      socket.on('receiveMessage', (message) => {
+        console.log('[SocketProvider] Received message:', message);
+        callback(message);
+      });
+    } else {
+      console.error('[SocketProvider] Cannot set up message receiver - socket not connected');
     }
   };
 

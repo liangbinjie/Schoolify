@@ -10,38 +10,27 @@ const MessageChat = ({ friendUsername, roomId }) => {
   const [isTyping, setIsTyping] = useState(false);
   const typingTimeoutRef = useRef(null);
   const messagesEndRef = useRef(null);
-  const { sendMessage, onChatHistory, onReceiveMessage, sendTypingIndicator, typingUsers, joinRoom } = useSocket();
+  const { sendMessage, onChatHistory, onReceiveMessage, sendTypingIndicator, typingUsers, joinRoom, markAsRead } = useSocket();
   const { user } = useAuth();
 
   useEffect(() => {
     if (roomId) {
-      console.log(`[CLIENT] Uniendo al roomId: ${roomId}`);
+      console.log('Joining room:', roomId);
       joinRoom(roomId);
+      markAsRead(roomId);
 
-      // Escuchar el historial de chat
+      // Listen for chat history
       onChatHistory((history) => {
-        console.log(`[DEBUG] Evento onChatHistory ejecutado para roomId: ${roomId}`);
-        console.log(`[DEBUG] Historial recibido:`, history);
-        setMessages(history); // Actualizar el estado con el historial
-        scrollToBottom(); // Asegurarse de que la vista se desplace al final
+        console.log('Received chat history:', history);
+        setMessages(history);
+        scrollToBottom();
       });
-    }
-  }, [roomId]);
 
-  useEffect(() => {
-    if (roomId) {
-      // Escuchar nuevos mensajes
+      // Listen for new messages
       onReceiveMessage((newMessage) => {
-        console.log(`[DEBUG] Evento onReceiveMessage ejecutado para roomId: ${roomId}`);
-        console.log(`[DEBUG] Nuevo mensaje recibido:`, newMessage);
-        if (newMessage.roomId === roomId) {
-          setMessages((prev) => {
-            const updatedMessages = [...prev, newMessage];
-            console.log(`[CLIENT] Mensajes actuales en el chat (${roomId}):`, updatedMessages);
-            return updatedMessages;
-          });
-          scrollToBottom();
-        }
+        console.log('Received new message:', newMessage);
+        setMessages(prev => [...prev, newMessage]);
+        scrollToBottom();
       });
     }
   }, [roomId]);
@@ -53,12 +42,21 @@ const MessageChat = ({ friendUsername, roomId }) => {
   const handleSendMessage = (e) => {
     e.preventDefault();
     if (message.trim() && roomId) {
+      console.log('Attempting to send message:', {
+        roomId,
+        user,
+        friendUsername,
+        message
+      });
+
       const messageData = {
         content: message,
         sender: user._id,
         receiver: friendUsername,
         timestamp: new Date().toISOString()
       };
+
+      console.log('Formatted message data:', messageData);
       sendMessage(roomId, messageData);
       setMessage('');
       setIsTyping(false);
