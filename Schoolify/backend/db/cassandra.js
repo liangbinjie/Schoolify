@@ -131,4 +131,54 @@ function getClient() {
   return client;
 }
 
-export { initCassandra, getClient };
+// Función para verificar la conexión al cluster
+async function checkCassandraCluster() {
+  try {
+    // Asegurar que el cliente está inicializado
+    const client = await initCassandra();
+    
+    console.log('🔍 Verificando conexión al clúster de Cassandra...');
+    
+    // 1. Comprobar que podemos ejecutar consultas básicas
+    const rs = await client.execute('SELECT release_version FROM system.local');
+    console.log(`✅ Versión de Cassandra: ${rs.first().release_version}`);
+    
+    // 2. Obtener información sobre el nodo local
+    const nodes = await client.execute('SELECT host_id, data_center, rack, release_version FROM system.local');
+    console.log('📌 Nodo local conectado:');
+    nodes.rows.forEach(node => {
+      console.log(`  - ID: ${node.host_id}, DC: ${node.data_center}, Rack: ${node.rack}, Versión: ${node.release_version}`);
+    });
+    
+    // 3. Obtener información de nodos peer (otros nodos en el clúster)
+    const peers = await client.execute('SELECT peer, data_center, rack, release_version FROM system.peers');
+    console.log(`📌 Nodos peer detectados: ${peers.rows.length}`);
+    peers.rows.forEach(peer => {
+      console.log(`  - Peer: ${peer.peer}, DC: ${peer.data_center}, Rack: ${peer.rack}, Versión: ${peer.release_version}`);
+    });
+
+    // 4. Verificar que tenemos exactamente 1 nodo peer (para un clúster de 2 nodos)
+    if (peers.rows.length === 1) {
+      console.log('✅ Detectado correctamente un clúster de 2 nodos');
+    } else if (peers.rows.length === 0) {
+      console.log('⚠️ Solo se detectó un nodo. Es posible que el segundo nodo no esté funcionando o no sea visible.');
+    } else {
+      console.log(`ℹ️ Detectados ${peers.rows.length + 1} nodos en total.`);
+    }
+    
+    return {
+      connected: true,
+      localNode: nodes.rows[0],
+      peerNodes: peers.rows,
+      totalNodes: 1 + peers.rows.length
+    };
+  } catch (err) {
+    console.error('❌ Error verificando el clúster de Cassandra:', err);
+    return {
+      connected: false,
+      error: err.message
+    };
+  }
+}
+
+export { initCassandra, getClient, checkCassandraCluster };

@@ -2,7 +2,7 @@ import express from 'express';
 import multer from 'multer';
 import { v4 as uuidv4 } from 'uuid';
 import CassandraFile from '../db/models/cassandraFileModel.js';
-import { initCassandra } from '../db/cassandra.js';
+import { initCassandra, checkCassandraCluster } from '../db/cassandra.js';
 
 const cassandraFileRouter = express.Router();
 
@@ -11,6 +11,44 @@ const storage = multer.memoryStorage();
 const upload = multer({ 
   storage,
   limits: { fileSize: 50 * 1024 * 1024 } // Límite de 50MB
+});
+
+// Función para verificar la conexión al clúster
+async function verifyConnection() {
+  const clusterInfo = await checkCassandraCluster();
+  console.log('Estado de la conexión:', clusterInfo.connected);
+  console.log('Número total de nodos:', clusterInfo.totalNodes);
+
+  // Añadir información sobre el datacenter (nombre del clúster)
+  if (clusterInfo.connected && clusterInfo.localNode) {
+    console.log('Datacenter del nodo local:', clusterInfo.localNode.data_center);
+    
+    // Mostrar todos los datacenters en el clúster
+    const datacenters = new Set();
+    datacenters.add(clusterInfo.localNode.data_center);
+    
+    if (clusterInfo.peerNodes && clusterInfo.peerNodes.length > 0) {
+      clusterInfo.peerNodes.forEach(peer => {
+        if (peer.data_center) {
+          datacenters.add(peer.data_center);
+        }
+      });
+    }
+    
+    console.log('Datacenters en el clúster:', Array.from(datacenters).join(', '));
+  }
+  
+  return clusterInfo;
+}
+
+// Verificar conexión al inicializar el router
+verifyConnection().then(info => {
+  console.log('Verificación inicial del clúster completada');
+  if (!info.connected) {
+    console.error('⚠️ ADVERTENCIA: No se pudo conectar correctamente al clúster de Cassandra');
+  }
+}).catch(err => {
+  console.error('Error al verificar conexión inicial:', err);
 });
 
 // Middleware que se asegura de que Cassandra esté inicializada antes de procesar cualquier solicitud
