@@ -20,56 +20,79 @@ export default function setupSocketIO(io) {
     // Handle joining a chat room
     socket.on("joinRoom", async ({ roomId }) => {
       socket.join(roomId);
-      console.log(`[SERVER] Socket ${socket.id} se unió a la sala: ${roomId}`);
+      console.log(`[SERVER] Socket ${socket.id} joined room: ${roomId}`);
 
       try {
-        // Obtener historial de mensajes desde Redis
+        // Get message history from Redis
         const messages = await redis.lrange(`chat:${roomId}`, 0, -1);
         const parsed = messages.map((msg) => JSON.parse(msg));
-        console.log(`[SERVER] Historial de mensajes para ${roomId}:`, parsed);
+        console.log(`[SERVER] Message history for ${roomId}:`, parsed);
 
-        // Enviar historial al cliente
+        // Send history to client
         socket.emit("chatHistory", parsed);
       } catch (err) {
-        console.error(`[SERVER] Error al obtener historial para ${roomId}:`, err);
+        console.error(`[SERVER] Error getting history for ${roomId}:`, err);
       }
     });
 
     // Handle sending a message
     socket.on("sendMessage", async ({ roomId, message }) => {
-      console.log(`[SERVER] Mensaje recibido en la sala ${roomId}:`, message);
+      console.log(`[SERVER] Message received in room ${roomId}:`, message);
 
-      // Asegúrate de que el mensaje tenga un timestamp y un remitente
-      if (!message.timestamp) {
-        message.timestamp = new Date().toISOString();
-      }
-      if (!message.sender) {
-        message.sender = userInfo.username;
-      }
+      try {
+        // Ensure message has required fields
+        const messageData = {
+          ...message,
+          timestamp: message.timestamp || new Date().toISOString(),
+          sender: message.sender || userInfo.userId,
+          roomId
+        };
 
-      // Llamar a la función para enviar el mensaje
-      await sendMessageToRoom(io, roomId, message);
+        // Save message to Redis
+        await redis.rpush(`chat:${roomId}`, JSON.stringify(messageData));
+        console.log(`[SERVER] Message saved to Redis for room ${roomId}`);
+
+        // Emit message to all users in the room
+        io.to(roomId).emit("receiveMessage", messageData);
+        console.log(`[SERVER] Message emitted to room ${roomId}:`, messageData);
+
+        // Also emit to recipient's personal room if they're not in the chat room
+        if (message.receiver) {
+          io.to(`user:${message.receiver}`).emit("newMessage", messageData);
+        }
+      } catch (err) {
+        console.error(`[SERVER] Error sending message to room ${roomId}:`, err);
+      }
     });
     
     // Handle marking messages as read
     socket.on("markAsRead", async ({ roomId, username }) => {
       try {
-        // Get all unread messages for this user in this room
+        // Get all messages for this room
         const messages = await redis.lrange(`chat:${roomId}`, 0, -1);
-        const unreadMessages = messages
-          .map(msg => JSON.parse(msg))
-          .filter(msg => msg.receiver === username && !msg.read);
+        const parsedMessages = messages.map(msg => JSON.parse(msg));
         
-        // Mark each message as read
-        for (const message of unreadMessages) {
-          message.read = true;
-          message.readAt = new Date().toISOString();
-          
-          // Update the message in Redis
-          // Note: This is a simplified approach. In a production app, you'd need a more
-          // sophisticated way to update specific messages in a list
-          await redis.del(`chat:${roomId}`);
-          await redis.rpush(`chat:${roomId}`, ...messages.map(msg => JSON.stringify(msg)));
+        // Find unread messages for this user
+        const unreadMessages = parsedMessages.filter(msg => 
+          msg.receiver === username && !msg.read
+        );
+        
+        // Mark messages as read
+        const updatedMessages = parsedMessages.map(msg => {
+          if (msg.receiver === username && !msg.read) {
+            return {
+              ...msg,
+              read: true,
+              readAt: new Date().toISOString()
+            };
+          }
+          return msg;
+        });
+        
+        // Update messages in Redis
+        await redis.del(`chat:${roomId}`);
+        if (updatedMessages.length > 0) {
+          await redis.rpush(`chat:${roomId}`, ...updatedMessages.map(msg => JSON.stringify(msg)));
         }
         
         // Notify the sender that their messages have been read
@@ -79,7 +102,7 @@ export default function setupSocketIO(io) {
           timestamp: new Date().toISOString()
         });
       } catch (err) {
-        console.error("Error marking messages as read:", err);
+        console.error("[SERVER] Error marking messages as read:", err);
       }
     });
     
@@ -93,18 +116,4 @@ export default function setupSocketIO(io) {
       console.log("Usuario desconectado:", socket.id);
     });
   });
-}
-
-async function sendMessageToRoom(io, roomId, message) {
-  try {
-    // Guardar el mensaje en Redis
-    await redis.rpush(`chat:${roomId}`, JSON.stringify(message));
-    console.log(`[SERVER] Mensaje guardado en Redis para la sala ${roomId}`);
-
-    // Emitir el mensaje a todos los usuarios en la sala
-    io.to(roomId).emit("receiveMessage", message);
-    console.log(`[SERVER] Mensaje emitido a la sala ${roomId}:`, message);
-  } catch (err) {
-    console.error(`[SERVER] Error al enviar mensaje a la sala ${roomId}:`, err);
-  }
 }

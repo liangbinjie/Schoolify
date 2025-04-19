@@ -53,20 +53,16 @@ const MessageChat = ({ friendUsername, roomId }) => {
   const handleSendMessage = (e) => {
     e.preventDefault();
     if (message.trim() && roomId) {
-      const newMessage = {
+      const messageData = {
         content: message,
-        sender: user.username,
+        sender: user._id,
         receiver: friendUsername,
-        timestamp: new Date().toISOString(),
+        timestamp: new Date().toISOString()
       };
-      console.log(`[CLIENT] Enviando mensaje a la sala ${roomId}:`, newMessage);
-      sendMessage(roomId, newMessage);
-      setMessages((prev) => {
-        const updatedMessages = [...prev, newMessage];
-        console.log(`[CLIENT] Mensajes actuales en el chat (${roomId}):`, updatedMessages);
-        return updatedMessages;
-      });
+      sendMessage(roomId, messageData);
       setMessage('');
+      setIsTyping(false);
+      sendTypingIndicator(roomId, false);
     }
   };
 
