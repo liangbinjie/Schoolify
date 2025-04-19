@@ -4,32 +4,44 @@ import { useAuth } from '../context/AuthProvider';
 import { Box, TextField, Button, Typography, Paper, Avatar } from '@mui/material';
 import { Send as SendIcon } from '@mui/icons-material';
 
-const MessageChat = ({ selectedUser }) => {
+const MessageChat = ({ friendUsername, roomId }) => {
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState([]);
   const [isTyping, setIsTyping] = useState(false);
   const typingTimeoutRef = useRef(null);
   const messagesEndRef = useRef(null);
-  const { socket, joinRoom, sendMessage, markAsRead, sendTypingIndicator, onChatHistory, onReceiveMessage, typingUsers } = useSocket();
+  const { sendMessage, onChatHistory, onReceiveMessage, sendTypingIndicator, typingUsers, joinRoom } = useSocket();
   const { user } = useAuth();
-
-  const roomId = selectedUser ? [user._id, selectedUser._id].sort().join('-') : null;
 
   useEffect(() => {
     if (roomId) {
+      console.log(`[CLIENT] Uniendo al roomId: ${roomId}`);
       joinRoom(roomId);
-      markAsRead(roomId);
 
-      // Listen for chat history
+      // Escuchar el historial de chat
       onChatHistory((history) => {
-        setMessages(history);
-        scrollToBottom();
+        console.log(`[DEBUG] Evento onChatHistory ejecutado para roomId: ${roomId}`);
+        console.log(`[DEBUG] Historial recibido:`, history);
+        setMessages(history); // Actualizar el estado con el historial
+        scrollToBottom(); // Asegurarse de que la vista se desplace al final
       });
+    }
+  }, [roomId]);
 
-      // Listen for new messages
+  useEffect(() => {
+    if (roomId) {
+      // Escuchar nuevos mensajes
       onReceiveMessage((newMessage) => {
-        setMessages(prev => [...prev, newMessage]);
-        scrollToBottom();
+        console.log(`[DEBUG] Evento onReceiveMessage ejecutado para roomId: ${roomId}`);
+        console.log(`[DEBUG] Nuevo mensaje recibido:`, newMessage);
+        if (newMessage.roomId === roomId) {
+          setMessages((prev) => {
+            const updatedMessages = [...prev, newMessage];
+            console.log(`[CLIENT] Mensajes actuales en el chat (${roomId}):`, updatedMessages);
+            return updatedMessages;
+          });
+          scrollToBottom();
+        }
       });
     }
   }, [roomId]);
@@ -41,10 +53,20 @@ const MessageChat = ({ selectedUser }) => {
   const handleSendMessage = (e) => {
     e.preventDefault();
     if (message.trim() && roomId) {
-      sendMessage(roomId, message);
+      const newMessage = {
+        content: message,
+        sender: user.username,
+        receiver: friendUsername,
+        timestamp: new Date().toISOString(),
+      };
+      console.log(`[CLIENT] Enviando mensaje a la sala ${roomId}:`, newMessage);
+      sendMessage(roomId, newMessage);
+      setMessages((prev) => {
+        const updatedMessages = [...prev, newMessage];
+        console.log(`[CLIENT] Mensajes actuales en el chat (${roomId}):`, updatedMessages);
+        return updatedMessages;
+      });
       setMessage('');
-      setIsTyping(false);
-      sendTypingIndicator(roomId, false);
     }
   };
 
@@ -54,28 +76,30 @@ const MessageChat = ({ selectedUser }) => {
       sendTypingIndicator(roomId, true);
     }
 
-    // Clear existing timeout
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
     }
 
-    // Set new timeout
     typingTimeoutRef.current = setTimeout(() => {
       setIsTyping(false);
       sendTypingIndicator(roomId, false);
     }, 1000);
   };
 
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      handleSendMessage(e);
+    }
+  };
+
   return (
     <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <Paper elevation={3} sx={{ p: 2, mb: 2 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          <Avatar src={selectedUser?.profilePicture} alt={selectedUser?.username}>
-            {selectedUser?.username?.[0]?.toUpperCase()}
-          </Avatar>
+          <Avatar>{friendUsername?.[0]?.toUpperCase()}</Avatar>
           <Box>
-            <Typography variant="h6">{selectedUser?.username}</Typography>
-            {typingUsers[selectedUser?.username] && (
+            <Typography variant="h6">{friendUsername}</Typography>
+            {typingUsers[friendUsername] && (
               <Typography variant="caption" color="textSecondary">
                 typing...
               </Typography>
@@ -90,8 +114,8 @@ const MessageChat = ({ selectedUser }) => {
             key={index}
             sx={{
               display: 'flex',
-              justifyContent: msg.sender === user._id ? 'flex-end' : 'flex-start',
-              mb: 2
+              justifyContent: msg.sender === user.username ? 'flex-end' : 'flex-start',
+              mb: 2,
             }}
           >
             <Paper
@@ -99,8 +123,8 @@ const MessageChat = ({ selectedUser }) => {
               sx={{
                 p: 2,
                 maxWidth: '70%',
-                bgcolor: msg.sender === user._id ? 'primary.main' : 'grey.100',
-                color: msg.sender === user._id ? 'white' : 'text.primary'
+                bgcolor: msg.sender === user.username ? 'primary.main' : 'grey.100',
+                color: msg.sender === user.username ? 'white' : 'text.primary',
               }}
             >
               <Typography variant="body1">{msg.content}</Typography>
@@ -121,7 +145,7 @@ const MessageChat = ({ selectedUser }) => {
           display: 'flex',
           gap: 1,
           borderTop: '1px solid',
-          borderColor: 'divider'
+          borderColor: 'divider',
         }}
       >
         <TextField
@@ -133,6 +157,7 @@ const MessageChat = ({ selectedUser }) => {
             setMessage(e.target.value);
             handleTyping();
           }}
+          onKeyPress={handleKeyPress}
           size="small"
         />
         <Button
@@ -148,4 +173,4 @@ const MessageChat = ({ selectedUser }) => {
   );
 };
 
-export default MessageChat; 
+export default MessageChat;

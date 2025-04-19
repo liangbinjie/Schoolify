@@ -5,8 +5,8 @@ const userSchema = new mongoose.Schema({
   lastName:  { type: String, required: true },
   email:     { type: String, required: true, unique: true },
   username:  { type: String, required: true, unique: true },
-  password:  { type: String, required: true },  // Hashed password
-  salt:      { type: String, required: true },  // Store salt separately
+  password:  { type: String, required: true },
+  salt:      { type: String, required: true },
   birthDate: { type: String, required: true },
   profilePicture: {
     data: Buffer,
@@ -14,10 +14,12 @@ const userSchema = new mongoose.Schema({
   },
   createdAt: { type: Date, default: Date.now },
 
-  friends: [String],  
-  receivedRequests: [ String ],
-  sentRequests: [ String ],
+  friends: [String],
+  receivedRequests: [String],
+  sentRequests: [String],
 
+  createdCourses: [{ type: mongoose.Schema.Types.ObjectId, ref: "courses" }], // Cursos creados
+  enrolledCourses: [{ type: mongoose.Schema.Types.ObjectId, ref: "courses" }], // Cursos matriculados
 });
 
 const User = mongoose.model("User", userSchema);

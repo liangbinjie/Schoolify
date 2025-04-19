@@ -14,11 +14,13 @@ function Home() {
         height: '100%', // Ocupa toda la altura disponible
         padding: '40px 20px',
         boxSizing: 'border-box', // Asegura que el padding no exceda el tamaño
+        flexWrap: 'wrap', // Permite que los elementos se ajusten en pantallas pequeñas
     };
 
     const leftContainerStyle = {
         maxWidth: '50%',
         padding: '0 20px',
+        textAlign: 'center', // Centra el texto en pantallas pequeñas
     };
 
     const rightContainerStyle = {
@@ -26,15 +28,18 @@ function Home() {
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'center',
+        marginTop: '20px', // Espaciado entre secciones en pantallas pequeñas
     };
 
     const imageStyle = {
-        width: '40rem',
+        width: '100%', // Ajusta la imagen al ancho disponible
+        maxWidth: '40rem', // Limita el tamaño máximo
         borderRadius: '10px',
     };
 
     const buttonContainerStyle = {
         display: 'flex',
+        flexDirection: 'column', // Cambia a columna en pantallas pequeñas
         gap: '20px',
         marginTop: '20px',
     };
@@ -45,7 +50,8 @@ function Home() {
         borderRadius: '5px',
         border: 'none',
         cursor: 'pointer',
-        width: '30rem', // Botones del mismo ancho que el texto
+        width: '100%', // Botones ocupan todo el ancho disponible
+        maxWidth: '30rem', // Limita el tamaño máximo
     };
 
     const signInButtonStyle = {

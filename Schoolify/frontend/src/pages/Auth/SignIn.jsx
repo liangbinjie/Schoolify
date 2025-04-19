@@ -39,7 +39,7 @@ function SignInPage() {
           }
 
           try {
-            const res = await axios.post("http://localhost:5000/user", data, {
+            const res = await axios.post("http://localhost:5000/users", data, {
               headers: {
                 "Content-Type": "multipart/form-data"
               }

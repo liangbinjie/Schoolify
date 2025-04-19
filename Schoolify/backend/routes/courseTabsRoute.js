@@ -1,80 +1,77 @@
 import express from "express";
 import Course from '../db/models/courseModel.js';
 import File from '../db/models/fileModel.js';
+import Tab from "../db/models/tabModel.js";
 import upload from '../middleware/upload.js';
 import path from "path";
 import fs from "fs";
+import multer from "multer";
 
 const tabsRouter = express.Router();
+
+const memoryUpload = multer({ storage: multer.memoryStorage() });
 
 // Obtener todos los tabs de un curso
 tabsRouter.get("/courses/:courseId/tabs", async (req, res) => {
     try {
-        console.log("Obteniendo tabs para el curso:", req.params.courseId);
-
-        const course = await Course.findById(req.params.courseId);
-        console.log("Curso encontrado:", course);
+        // Buscar el curso y popular los tabs relacionados
+        const course = await Course.findById(req.params.courseId).populate("tabs");
 
         if (!course) {
-            console.log("Curso no encontrado");
             return res.status(404).json({ message: "Curso no encontrado" });
         }
 
+        // Verificar si el curso tiene tabs
         if (!course.tabs || course.tabs.length === 0) {
-            console.log("El curso no tiene tabs");
             return res.status(200).json([]);
         }
 
-        // Ordenamos los tabs por el campo order
-        const sortedTabs = [...course.tabs].sort((a, b) => a.order - b.order);
-        console.log("Tabs ordenados:", sortedTabs);
+        // Ordenar los tabs por el campo `order` (si existe)
+        const sortedTabs = course.tabs.sort((a, b) => a.order - b.order);
 
         res.status(200).json(sortedTabs);
     } catch (err) {
-        console.error("Error al obtener tabs:", err);
+        console.error("Error al obtener los tabs:", err);
         res.status(500).json({ message: "Error interno del servidor" });
     }
 });
 
 // Crear un nuevo tab
-tabsRouter.post("/courses/:courseId/tabs", async (req, res) => {
+tabsRouter.post("/courses/:courseId/tabs", memoryUpload.array("contents"), async (req, res) => {
     try {
         const { title, description, order } = req.body;
-        
+
         if (!title || order === undefined) {
             return res.status(400).json({ message: "Se requiere título y orden para el tab" });
         }
-        
+
         const course = await Course.findById(req.params.courseId);
         if (!course) {
             return res.status(404).json({ message: "Curso no encontrado" });
         }
-        
-        // Verificar si ya existe un tab con el mismo orden
-        const tabWithSameOrder = course.tabs.find(tab => tab.order === order);
-        if (tabWithSameOrder) {
-            // Mover todos los tabs con orden >= al nuevo orden un lugar hacia arriba
-            course.tabs.forEach(tab => {
-                if (tab.order >= order) {
-                    tab.order += 1;
-                }
-            });
-        }
-        
-        // Crear nuevo tab
+
+        // Procesar los archivos subidos
+        const files = req.files.map((file) => ({
+            type: "file",
+            title: file.originalname,
+            content: file.buffer.toString("base64"), // Guardar como base64 o en un sistema de almacenamiento
+            fileType: file.mimetype,
+        }));
+
+        // Crear el nuevo tab
         const newTab = {
             title,
             description: description || "",
             order,
-            contents: []
+            contents: files,
         };
-        
+
         course.tabs.push(newTab);
         await course.save();
-        
-        res.status(201).json({ 
-            message: "Tab creado exitosamente", 
-            tab: newTab 
+
+        res.status(201).json({
+            message: "Tab creado exitosamente",
+            tab: newTab,
         });
     } catch (err) {
         console.error("Error al crear tab:", err);
@@ -370,5 +367,85 @@ tabsRouter.delete("/courses/:courseId/tabs/:tabId/content/:contentId", async (re
         res.status(500).json({ message: "Error interno del servidor" });
     }
 });
+
+// Crear un nuevo subtab (subtema)
+tabsRouter.post(
+    "/courses/:courseId/tabs/:tabId/subtabs",
+    memoryUpload.none(), // Procesar datos de tipo multipart/form-data sin archivos
+    async (req, res) => {
+        try {
+            console.log("Datos recibidos en req.body:", req.body);
+
+            const { title, description, order } = req.body;
+
+            const parentTab = await Tab.findById(req.params.tabId);
+            if (!parentTab) {
+                return res.status(404).json({ message: "Tab no encontrado" });
+            }
+
+            const newSubtab = {
+                title,
+                description: description || "",
+                order,
+            };
+
+            parentTab.subtabs.push(newSubtab);
+            await parentTab.save();
+
+            res.status(201).json({
+                message: "Subtema creado exitosamente",
+                subtab: newSubtab,
+            });
+        } catch (err) {
+            console.error("Error al crear subtema:", err);
+            res.status(500).json({ message: "Error interno del servidor" });
+        }
+    }
+);
+
+// Subir un archivo a un subtab
+tabsRouter.post(
+    "/courses/:courseId/tabs/:tabId/subtabs/:subtabId/content/file",
+    memoryUpload.single("file"), // Procesar un archivo
+    async (req, res) => {
+        try {
+            const { title, description, order } = req.body;
+
+            if (!req.file) {
+                return res.status(400).json({ message: "No se subió ningún archivo" });
+            }
+
+            const parentTab = await Tab.findById(req.params.tabId);
+            if (!parentTab) {
+                return res.status(404).json({ message: "Tab no encontrado" });
+            }
+
+            const subtab = parentTab.subtabs.id(req.params.subtabId);
+            if (!subtab) {
+                return res.status(404).json({ message: "Subtab no encontrado" });
+            }
+
+            const newContent = {
+                type: "file",
+                title: title || req.file.originalname,
+                description: description || "",
+                content: req.file.buffer.toString("base64"), // Guardar el archivo como base64
+                fileType: req.file.mimetype,
+                order: order || subtab.contents.length,
+            };
+
+            subtab.contents.push(newContent);
+            await parentTab.save();
+
+            res.status(201).json({
+                message: "Archivo subido exitosamente al subtab",
+                content: newContent,
+            });
+        } catch (err) {
+            console.error("Error al subir archivo al subtab:", err);
+            res.status(500).json({ message: "Error interno del servidor" });
+        }
+    }
+);
 
 export default tabsRouter;

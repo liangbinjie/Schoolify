@@ -16,7 +16,7 @@ Proyecto Bases II 2025
 - [x] **HU2**: Como usuario, debo poder editar mi información y cambiarla.
 
 ## Gestión de Cursos (Docente)
-- [ ] **HU3**: Como docente, debo poder crear un curso.
+- [x] **HU3**: Como docente, debo poder crear un curso.
   - Campos del curso:
     - Código
     - Nombre
@@ -35,7 +35,7 @@ Proyecto Bases II 2025
 - [ ] **HU11**: Como docente, debo poder clonar un curso (copiar materiales, nuevo estado: edición).
 
 ## Interacción Estudiantil
-- [ ] **HU12**: Como estudiante, debo buscar cursos publicados y ver su información.
+- [x] **HU12**: Como estudiante, debo buscar cursos publicados y ver su información.
 - [ ] **HU13**: Como estudiante, debo matricularme a un curso.
 - [ ] **HU14**: Como estudiante, debo ver lista de cursos matriculados.
 - [ ] **HU15**: Como estudiante, debo ver secciones/contenido de un curso.
@@ -45,7 +45,7 @@ Proyecto Bases II 2025
 - [ ] **HU19**: Como estudiante, debo ver lista de otros estudiantes en el curso.
 
 ## Red Social y Mensajería
-- [ ] **HU20**: Como usuario, debo poder hacerme amigo de otros usuarios (ver sus cursos como docente/estudiante, sin notas).
+- [x] **HU20**: Como usuario, debo poder hacerme amigo de otros usuarios (ver sus cursos como docente/estudiante, sin notas).
 - [ ] **HU21**: Como usuario, debo buscar otros usuarios en el sistema.
 - [ ] **HU22**: Como usuario, debo enviar/responder mensajes a otros usuarios.
 

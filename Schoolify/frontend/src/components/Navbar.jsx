@@ -106,6 +106,11 @@ function Navbar() {
                     </a>
                   </li>
                   <li>
+                    <a className="dropdown-item" href="/cursos-creados">
+                      Cursos Creados
+                    </a>
+                  </li>
+                  <li>
                     <a className="dropdown-item" href="/cursos-matriculados">
                       Cursos Matriculados
                     </a>

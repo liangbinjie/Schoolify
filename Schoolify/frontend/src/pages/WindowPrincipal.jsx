@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 
-
 function WindowPrincipal() {
     const [courses, setCourses] = useState([]);
 
@@ -10,7 +9,11 @@ function WindowPrincipal() {
         const fetchCourses = async () => {
             try {
                 const response = await axios.get("http://localhost:5000/courses"); // Ajusta la URL si es necesario
-                setCourses(response.data);
+                // Filtrar cursos que no estén en estado "Editando" o "Cerrado"
+                const filteredCourses = response.data.filter(
+                    (course) => course.state !== "in edition" && course.state !== "closed"
+                );
+                setCourses(filteredCourses);
             } catch (error) {
                 console.error("Error fetching courses:", error);
             }

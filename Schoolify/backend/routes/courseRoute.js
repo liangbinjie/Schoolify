@@ -1,6 +1,7 @@
 import express from "express";
 import multer from "multer";
 import Course from "../db/models/courseModel.js";
+import User from "../db/models/userModel.js";
 
 const courseRouter = express.Router();
 
@@ -18,12 +19,15 @@ courseRouter.post("/", upload.single("image"), async (req, res) => {
             return res.status(400).json({ message: "Please fill in all required fields" });
         }
 
-        // Validate image file type
-        if (imageFile && imageFile.mimetype !== "image/jpeg" && imageFile.mimetype !== "image/png") {
-            return res.status(400).json({ message: "Invalid file type. Only JPEG and PNG are allowed." });
+        // Find the user by teacher name
+        const [firstName, lastName] = teacher.split(" ");
+        const user = await User.findOne({ firstName, lastName });
+
+        if (!user) {
+            return res.status(404).json({ message: "Teacher not found" });
         }
 
-        // Save course
+        // Create the course
         const newCourse = new Course({
             code,
             name,
@@ -40,6 +44,11 @@ courseRouter.post("/", upload.single("image"), async (req, res) => {
         });
 
         await newCourse.save();
+
+        // Add the course ID to the user's createdCourses list
+        user.createdCourses.push(newCourse._id);
+        await user.save();
+
         res.status(201).json({ message: "Course created successfully", course: newCourse });
     } catch (err) {
         console.error("Error creating course:", err);
@@ -126,19 +135,36 @@ courseRouter.post("/clone/:id", async (req, res) => {
 });
 
 // update course by id
-courseRouter.put("/:id", async (req, res) => {
-    const { id } = req.params;
-    const { code, name, description, startDate, endDate, image, studentList, teacher } = req.body;
+courseRouter.put("/:id", upload.single("image"), async (req, res) => {
+    const { name, code, description, startDate, endDate, state } = req.body;
 
     try {
-        const course = await Course.findByIdAndUpdate(id, { code, name, description, startDate, endDate, image, studentList, teacher }, { new: true });
+        const course = await Course.findById(req.params.id);
         if (!course) {
-            return res.status(404).json({ message: "Course not found" });
+            return res.status(404).json({ message: "Curso no encontrado" });
         }
-        res.status(200).json(course);
-    } catch (err) {
-        console.error("Error updating course:", err);
-        res.status(500).json({ message: "Internal server error" });
+
+        // Actualizar solo los campos enviados en el cuerpo de la solicitud
+        if (name) course.name = name;
+        if (code) course.code = code;
+        if (description) course.description = description;
+        if (startDate) course.startDate = new Date(startDate);
+        if (endDate) course.endDate = new Date(endDate);
+        if (state) course.state = state;
+
+        // Si se envió una nueva imagen, actualízala
+        if (req.file) {
+            course.image = {
+                data: req.file.buffer,
+                contentType: req.file.mimetype,
+            };
+        }
+
+        await course.save();
+        res.status(200).json({ message: "Curso actualizado con éxito", course });
+    } catch (error) {
+        console.error("Error al actualizar el curso:", error);
+        res.status(500).json({ message: "Error interno del servidor" });
     }
 });
 
@@ -181,15 +207,14 @@ courseRouter.get("/:id/image", async (req, res) => {
         const course = await Course.findById(req.params.id);
 
         if (!course || !course.image || !course.image.data) {
-            return res.status(404).json({ message: "Image not found" });
+            return res.status(404).json({ message: "Imagen no encontrada" });
         }
 
         res.set("Content-Type", course.image.contentType);
         res.send(course.image.data);
-
     } catch (err) {
-        console.error("Error retrieving course image:", err);
-        res.status(500).json({ message: "Internal server error" });
+        console.error("Error al recuperar la imagen del curso:", err);
+        res.status(500).json({ message: "Error interno del servidor" });
     }
 });
 
