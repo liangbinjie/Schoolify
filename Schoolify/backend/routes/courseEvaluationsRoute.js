@@ -4,7 +4,7 @@ import EvaluationResult from "../db/models/evaluationResultModel.js";
 
 const evaluationRouter = express.Router();
 
-z
+
 
 // Obtener evaluaciones de un curso
 evaluationRouter.get("/:courseId", async (req, res) => {
