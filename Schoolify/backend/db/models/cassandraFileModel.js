@@ -5,11 +5,16 @@ class CassandraFile {
   static async saveFile(fileData) {
     const fileId = uuidv4();
     const client = getClient();
+    
+    // Garantizar que subtopicId tenga un valor válido para Cassandra
+    // Si es null o undefined, usamos una cadena vacía para indicar que es un archivo de nivel de tema
+    const subtopicId = fileData.subtopicId || '';
+    
     const params = [
       fileId,
       fileData.courseId,
       fileData.topicId,
-      fileData.subtopicId || null,
+      subtopicId,
       fileData.filename,
       fileData.originalName,
       fileData.contentType,
@@ -24,7 +29,7 @@ class CassandraFile {
         id: fileId,
         courseId: fileData.courseId,
         topicId: fileData.topicId,
-        subtopicId: fileData.subtopicId,
+        subtopicId: subtopicId,
         filename: fileData.filename,
         size: fileData.size,
         contentType: fileData.contentType
@@ -47,7 +52,7 @@ class CassandraFile {
         [
           fileData.courseId,
           fileData.topicId,
-          fileData.subtopicId || null,
+          subtopicId,
           fileId,
           fileData.filename,
           fileData.contentType,
@@ -56,8 +61,8 @@ class CassandraFile {
         { prepare: true }
       );
       
-      console.log('✅ Archivo guardado con éxito en Cassandra');
-      return { id: fileId, ...fileData };
+      console.log(`✅ Archivo guardado con éxito en Cassandra con subtopic_id: ${subtopicId || 'nivel tema'}`);
+      return { id: fileId, ...fileData, subtopicId };
     } catch (err) {
       console.error('❌ Error guardando archivo en Cassandra:', err);
       throw err;
@@ -65,6 +70,7 @@ class CassandraFile {
   }
   
   static async getFileById(fileId) {
+    // No hay cambios en este método
     try {
       const client = getClient();
       const result = await client.execute(
@@ -87,9 +93,12 @@ class CassandraFile {
   static async getFilesByTopicId(courseId, topicId) {
     try {
       const client = getClient();
+      // Para archivos a nivel de tema, usamos cadena vacía como subtopicId
+      const subtopicId = '';
+      
       const result = await client.execute(
-        'SELECT * FROM files_by_course WHERE course_id = ? AND topic_id = ?',
-        [courseId, topicId],
+        'SELECT * FROM files_by_course WHERE course_id = ? AND topic_id = ? AND subtopic_id = ?',
+        [courseId, topicId, subtopicId],
         { prepare: true }
       );
       
@@ -103,6 +112,11 @@ class CassandraFile {
   static async getFilesBySubtopicId(courseId, topicId, subtopicId) {
     try {
       const client = getClient();
+      // Aquí subtopicId debe ser un ID válido de MongoDB
+      if (!subtopicId) {
+        throw new Error('El ID del subtema es requerido');
+      }
+      
       const result = await client.execute(
         'SELECT * FROM files_by_course WHERE course_id = ? AND topic_id = ? AND subtopic_id = ?',
         [courseId, topicId, subtopicId],
@@ -125,6 +139,9 @@ class CassandraFile {
         return false;
       }
       
+      // Usar el valor actual de subtopic_id
+      const subtopicId = fileData.subtopic_id || '';
+      
       // Eliminar de la tabla principal
       await client.execute(
         'DELETE FROM files WHERE id = ?',
@@ -135,7 +152,7 @@ class CassandraFile {
       // Eliminar de la tabla secundaria
       await client.execute(
         'DELETE FROM files_by_course WHERE course_id = ? AND topic_id = ? AND subtopic_id = ? AND file_id = ?',
-        [fileData.course_id, fileData.topic_id, fileData.subtopic_id, fileId],
+        [fileData.course_id, fileData.topic_id, subtopicId, fileId],
         { prepare: true }
       );
       

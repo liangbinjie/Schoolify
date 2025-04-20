@@ -84,7 +84,7 @@ async function initCassandra() {
           filename text,
           original_name text,
           content_type text,
-          size int,
+          size bigint,
           data blob,
           upload_date timestamp,
           uploaded_by text
@@ -101,8 +101,8 @@ async function initCassandra() {
           file_id uuid,
           filename text,
           content_type text,
-          size int,
-          PRIMARY KEY ((course_id, topic_id), subtopic_id, file_id)
+          size bigint,
+          PRIMARY KEY ((course_id, topic_id, subtopic_id), file_id)
         )
       `);
       

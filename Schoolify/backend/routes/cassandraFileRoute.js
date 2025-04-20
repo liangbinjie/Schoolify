@@ -75,6 +75,7 @@ cassandraFileRouter.post('/upload/topic/:courseId/:topicId', upload.single('file
     const fileData = {
       courseId,
       topicId,
+      subtopicId: '', // Cadena vacía para indicar que es un archivo a nivel de tema
       filename: title || req.file.originalname,
       originalName: req.file.originalname,
       contentType: req.file.mimetype,
@@ -109,12 +110,19 @@ cassandraFileRouter.post('/upload/subtopic/:courseId/:topicId/:subtopicId', uplo
     }
     
     const { courseId, topicId, subtopicId } = req.params;
+    console.log(`📌 Procesando subida de archivo al subtema (subtab) con ID: ${subtopicId}`);
+    
+    // Validar que el subtopicId es un ID de MongoDB válido
+    if (!subtopicId.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({ message: 'ID de subtema inválido' });
+    }
+    
     const { title, description, uploadedBy } = req.body;
     
     const fileData = {
       courseId,
       topicId,
-      subtopicId,
+      subtopicId, // ID real del subtema en MongoDB
       filename: title || req.file.originalname,
       originalName: req.file.originalname,
       contentType: req.file.mimetype,
@@ -126,7 +134,7 @@ cassandraFileRouter.post('/upload/subtopic/:courseId/:topicId/:subtopicId', uplo
     const savedFile = await CassandraFile.saveFile(fileData);
     
     res.status(201).json({
-      message: 'Archivo subido exitosamente',
+      message: 'Archivo subido exitosamente al subtema',
       file: {
         id: savedFile.id,
         filename: savedFile.filename,
@@ -136,7 +144,7 @@ cassandraFileRouter.post('/upload/subtopic/:courseId/:topicId/:subtopicId', uplo
       }
     });
   } catch (err) {
-    console.error('Error al subir archivo:', err);
+    console.error('Error al subir archivo a subtema:', err);
     res.status(500).json({ message: 'Error interno del servidor: ' + err.message });
   }
 });
@@ -185,7 +193,15 @@ cassandraFileRouter.get('/list/topic/:courseId/:topicId', async (req, res) => {
     const { courseId, topicId } = req.params;
     const files = await CassandraFile.getFilesByTopicId(courseId, topicId);
     
-    res.status(200).json(files);
+    // Mapear para devolver solo la información necesaria
+    const fileList = files.map(file => ({
+      file_id: file.file_id,
+      filename: file.filename,
+      content_type: file.content_type,
+      size: file.size
+    }));
+    
+    res.json(fileList);
   } catch (err) {
     console.error('Error al listar archivos:', err);
     res.status(500).json({ message: 'Error interno del servidor: ' + err.message });
@@ -196,9 +212,23 @@ cassandraFileRouter.get('/list/topic/:courseId/:topicId', async (req, res) => {
 cassandraFileRouter.get('/list/subtopic/:courseId/:topicId/:subtopicId', async (req, res) => {
   try {
     const { courseId, topicId, subtopicId } = req.params;
+    
+    // Validar que el subtopicId es un ID de MongoDB válido
+    if (!subtopicId.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({ message: 'ID de subtema inválido' });
+    }
+    
     const files = await CassandraFile.getFilesBySubtopicId(courseId, topicId, subtopicId);
     
-    res.status(200).json(files);
+    // Mapear para devolver solo la información necesaria
+    const fileList = files.map(file => ({
+      file_id: file.file_id,
+      filename: file.filename,
+      content_type: file.content_type,
+      size: file.size
+    }));
+    
+    res.json(fileList);
   } catch (err) {
     console.error('Error al listar archivos:', err);
     res.status(500).json({ message: 'Error interno del servidor: ' + err.message });
@@ -206,7 +236,7 @@ cassandraFileRouter.get('/list/subtopic/:courseId/:topicId/:subtopicId', async (
 });
 
 // Ruta para eliminar un archivo
-cassandraFileRouter.delete('/:fileId', async (req, res) => {
+cassandraFileRouter.delete('/delete/:fileId', async (req, res) => {
   try {
     const { fileId } = req.params;
     const deleted = await CassandraFile.deleteFileById(fileId);
@@ -218,6 +248,34 @@ cassandraFileRouter.delete('/:fileId', async (req, res) => {
     res.status(200).json({ message: 'Archivo eliminado correctamente' });
   } catch (err) {
     console.error('Error al eliminar archivo:', err);
+    res.status(500).json({ message: 'Error interno del servidor: ' + err.message });
+  }
+});
+
+// Agregar esta ruta para verificar la configuración
+cassandraFileRouter.get('/verify-subtab/:subtopicId/:fileId', async (req, res) => {
+  try {
+    const { subtopicId, fileId } = req.params;
+    const file = await CassandraFile.getFileById(fileId);
+    
+    if (!file) {
+      return res.status(404).json({ message: 'Archivo no encontrado' });
+    }
+    
+    // Verificar si el subtopic_id almacenado coincide con el esperado
+    const isMatch = file.subtopic_id === subtopicId;
+    
+    res.status(200).json({
+      fileId: fileId,
+      expectedSubtopicId: subtopicId,
+      storedSubtopicId: file.subtopic_id,
+      isMatch: isMatch,
+      message: isMatch 
+        ? '✅ El ID del subtema se guardó correctamente' 
+        : '❌ El ID del subtema almacenado no coincide con el esperado'
+    });
+  } catch (err) {
+    console.error('Error al verificar archivo:', err);
     res.status(500).json({ message: 'Error interno del servidor: ' + err.message });
   }
 });
