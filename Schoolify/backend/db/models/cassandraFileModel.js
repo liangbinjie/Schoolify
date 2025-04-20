@@ -8,7 +8,7 @@ class CassandraFile {
     
     // Garantizar que subtopicId tenga un valor válido para Cassandra
     // Si es null o undefined, usamos una cadena vacía para indicar que es un archivo de nivel de tema
-    const subtopicId = fileData.subtopicId || '';
+    const subtopicId = fileData.subtopicId || 'TOP_LEVEL';
     
     const params = [
       fileId,
@@ -94,7 +94,7 @@ class CassandraFile {
     try {
       const client = getClient();
       // Para archivos a nivel de tema, usamos cadena vacía como subtopicId
-      const subtopicId = '';
+      const subtopicId = 'TOP_LEVEL';
       
       const result = await client.execute(
         'SELECT * FROM files_by_course WHERE course_id = ? AND topic_id = ? AND subtopic_id = ?',
@@ -140,7 +140,7 @@ class CassandraFile {
       }
       
       // Usar el valor actual de subtopic_id
-      const subtopicId = fileData.subtopic_id || '';
+      const subtopicId = fileData.subtopic_id || 'TOP_LEVEL';
       
       // Eliminar de la tabla principal
       await client.execute(
