@@ -236,7 +236,7 @@ cassandraFileRouter.get('/list/subtopic/:courseId/:topicId/:subtopicId', async (
 });
 
 // Ruta para eliminar un archivo
-cassandraFileRouter.delete('/:fileId', async (req, res) => {
+cassandraFileRouter.delete('/delete/:fileId', async (req, res) => {
   try {
     const { fileId } = req.params;
     const deleted = await CassandraFile.deleteFileById(fileId);
