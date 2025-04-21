@@ -27,9 +27,9 @@ Proyecto Bases II 2025
 
 - [x] **HU4**: Como docente, debo poder agregar secciones/temas/subtemas a un curso.
 - [x] **HU5**: Como docente, debo poder agregar contenido a las secciones (texto, documentos, videos, imágenes).
-- [ ] **HU6**: Como docente, debo poder crear evaluaciones (preguntas de selección única con fechas y calificación automática).
+- [X] **HU6**: Como docente, debo poder crear evaluaciones (preguntas de selección única con fechas y calificación automática).
 - [x] **HU7**: Como docente, debo poder publicar un curso (estados: edición, publicado, activo, cerrado).
-- [ ] **HU8**: Como docente, debo ver estudiantes matriculados y sus notas (promedio simple).
+- [x] **HU8**: Como docente, debo ver estudiantes matriculados y sus notas (promedio simple).
 - [ ] **HU9**: Como docente, debo gestionar consultas/respuestas de estudiantes.
 - [x] **HU10**: Como docente, debo ver lista de mis cursos (activos, terminados).
 - [ ] **HU11**: Como docente, debo poder clonar un curso (copiar materiales, nuevo estado: edición).
