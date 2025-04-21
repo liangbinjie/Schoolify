@@ -11,11 +11,11 @@ courseEnrollmentRouter.post("/enroll", async (req, res) => {
         const {userID} = req.body;
 
         // Find the course by ID and the user by ID
-        const course = await Course.findById(courseID);
+        const course = await Course.findById(courseID, "-image");
         if (!course) {
             return res.status(404).json({ message: "Course not found" });
         }
-        const user = await User.findById(userID);
+        const user = await User.findById(userID, "-password -__v -profilePicture");
         if (!user) {
             return res.status(404).json({ message: "User not found" });
         }
@@ -44,11 +44,11 @@ courseEnrollmentRouter.post("/unenroll/", async (req, res) => {
         const { courseID } = req.body;
         const { userID } = req.body;
 
-        const course = await Course.findById(courseID);
+        const course = await Course.findById(courseID, "-image");
         if (!course) {
             return res.status(404).json({ message: "Course not found" });
         }
-        const user = await User.findById(userID);
+        const user = await User.findById(userID, "-password -salt -profilePicture");
         if (!user) {
             return res.status(404).json({ message: "User not found" });
         }
@@ -57,10 +57,10 @@ courseEnrollmentRouter.post("/unenroll/", async (req, res) => {
         if (course.studentList.includes(user.username)) {
             // Remove the user from the course's student list
             course.studentList = course.studentList.filter(student => student !== user.username);
-            user.enrolledCourses = user.enrolledCourses.filter(course => course !== courseID);
+            user.enrolledCourses = user.enrolledCourses.filter(course => course.toString() !== courseID);
             await user.save();
             await course.save();
-            res.status(200).json({ message: "User unenrolled successfully" });
+            res.status(200).json({ message: "User unenrolled successfully", user, course});
         }
         // If the user is not enrolled, return a message
         else {
@@ -98,7 +98,7 @@ courseEnrollmentRouter.get("/courses/:userID", async (req, res) => {
     try {
         const { userID } = req.params;
 
-        const user = await User.findById(userID)
+        const user = await User.findById(userID, "-password -salt -profilePicture")
             .populate("enrolledCourses", "_id name code");;
         if (!user) {
             return res.status(404).json({ message: "User not found" });

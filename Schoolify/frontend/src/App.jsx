@@ -7,13 +7,14 @@ import SignInPage from './pages/Auth/SignIn.jsx'
 import Profile from "./pages/User/EditProfile.jsx";
 import UserProfile from "./pages/User/UserProfile.jsx"
 import WindowPrincipal from './pages/WindowPrincipal.jsx';
-import CourseView from "./pages/CourseView.jsx";
-import CreateCourse from "./pages/CreateCourse.jsx";
+import CourseView from "./pages/Course/CourseView.jsx";
+import CreateCourse from "./pages/Course/CreateCourse.jsx";
 import FriendRequests from "./pages/User/FriendRequets.jsx";
 import Friends from "./pages/User/Friends.jsx";
 import Messages from "./pages/User/Messages.jsx";
 import UserCourses from "./pages/User/UserCourses.jsx";
 import EditCourse from "./pages/User/EditCourse.jsx";
+import EnrolledCourses from "./pages/Course/EnrolledCourses.jsx";
 import { AuthRoute, NotAuthRoute } from "./context/AuthRoute.jsx";
 import { useAuth } from "./context/AuthProvider";
 import { ThemeProvider } from './context/ThemeProvider';
@@ -40,6 +41,7 @@ function App() {
                     <Route path="/create-course" element={<CreateCourse />} />
                     <Route path="/amigos" element={<Friends />} />
                     <Route path="/messages" element={<Messages />} />
+                    <Route path="/cursos-matriculados" element={<EnrolledCourses/>} />
                     {user ? (
                         <Route path="/cursos-creados" element={<UserCourses userId={user._id} />} />
                     ) : (

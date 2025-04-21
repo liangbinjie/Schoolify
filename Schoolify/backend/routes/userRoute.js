@@ -17,7 +17,10 @@ userRouter.get("/:username", async (req, res) => {
   const { username } = req.params;
 
   try {
-    const user = await User.findOne({username: username}).select("-profilePicture -password -salt"); // Exclude password and salt
+    const user = await User.findOne({username: username})
+      .select("-profilePicture -password -salt")
+      .populate("enrolledCourses", "_id name")
+      .populate("createdCourses","_id name"); // Exclude password and salt
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }

@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import { useAuth } from "../context/AuthProvider"; // Importar el contexto de autenticación
+import { useAuth } from "../../context/AuthProvider"; // Importar el contexto de autenticación
 
 function CreateCourse() {
     const navigate = useNavigate();
@@ -13,7 +13,7 @@ function CreateCourse() {
         description: "",
         startDate: "",
         endDate: "",
-        teacher: user.firstName + " " + user.lastName, // Asignar automáticamente el nombre del usuario
+        teacher: user.username, // Asignar automáticamente el nombre del usuario
     });
 
     const [courseImage, setCourseImage] = useState(null);
@@ -162,7 +162,7 @@ function CreateCourse() {
                         </div>
                         
                         <div className="mb-3">
-                            <label htmlFor="teacher" className="form-label">Nombre del Profesor*</label>
+                            <label htmlFor="teacher" className="form-label">Nombre de usuario del Profesor*</label>
                             <input
                                 type="text"
                                 className="form-control"
@@ -173,7 +173,7 @@ function CreateCourse() {
                                 disabled // Este atributo deshabilita el campo
                                 required
                             />
-                            <small className="text-muted">El nombre del profesor se asigna automáticamente</small>
+                            <small className="text-muted">El nombre de usuario del profesor se asigna automáticamente</small>
                         </div>
                     </div>
                     
