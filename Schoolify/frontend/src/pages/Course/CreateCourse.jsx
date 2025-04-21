@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
-import { useAuth } from "../context/AuthProvider"; // Assuming you have an AuthContext
+import { useAuth } from "../../context/AuthProvider"; // Assuming you have an AuthContext
 
 function CourseView() {
     const { id: courseId } = useParams();
