@@ -1482,28 +1482,30 @@ function StudentsSection({ courseId }) {
     return (
         <div>
             <h2>Lista de Estudiantes</h2>
-            <table className="table">
-                <thead>
-                    <tr>
-                        <th>Nombre</th>
-                        <th>Apellido</th>
-                        <th>Nombre de Usuario</th>
-                        <th>Correo Electrónico</th>
-                        <th>Notas</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {students.map((student) => (
-                        <tr key={student._id}>
-                            <td>{student.firstName}</td>
-                            <td>{student.lastName}</td>
-                            <td>{student.username}</td>
-                            <td>{student.email}</td>
-                            <td>{student.grade || "N/A"}</td>
+            {students.length > 0 ? (
+                <table className="table">
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Apellido</th>
+                            <th>Nombre de Usuario</th>
+                            <th>Correo Electrónico</th>
                         </tr>
-                    ))}
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        {students.map((student) => (
+                            <tr key={student._id}>
+                                <td>{student.firstName}</td>
+                                <td>{student.lastName}</td>
+                                <td>{student.username}</td>
+                                <td>{student.email}</td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            ) : (
+                <p className="text-muted">No hay estudiantes matriculados en este curso.</p>
+            )}
         </div>
     );
 }

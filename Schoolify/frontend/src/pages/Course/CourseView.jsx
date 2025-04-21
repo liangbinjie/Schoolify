@@ -66,36 +66,24 @@ function CourseView() {
         );
     };
 
-    const renderSubtabs = (subtabs, parentIndex) => (
-        <div className="accordion mt-2" id={`subtabsAccordion-${parentIndex}`}>
-            {subtabs.map((subtab, subIndex) => (
-                <div className="accordion-item" key={subtab._id}>
-                    <h2 className="accordion-header" id={`subtab-heading-${parentIndex}-${subIndex}`}>
-                        <button
-                            className="accordion-button collapsed"
-                            type="button"
-                            data-bs-toggle="collapse"
-                            data-bs-target={`#subtab-collapse-${parentIndex}-${subIndex}`}
-                            aria-expanded="false"
-                            aria-controls={`subtab-collapse-${parentIndex}-${subIndex}`}
-                        >
-                            {subtab.title}
-                        </button>
-                    </h2>
-                    <div
-                        id={`subtab-collapse-${parentIndex}-${subIndex}`}
-                        className="accordion-collapse collapse"
-                        aria-labelledby={`subtab-heading-${parentIndex}-${subIndex}`}
-                        data-bs-parent={`#subtabsAccordion-${parentIndex}`}
-                    >
-                        <div className="accordion-body">
-                            {subtab.contents && renderDocuments(subtab.contents)}
-                            {subtab.subtabs && renderSubtabs(subtab.subtabs, `${parentIndex}-${subIndex}`)}
-                        </div>
-                    </div>
-                </div>
+    const renderSubtabs = (subtabs) => (
+        <ul className="list-group mt-2">
+            {subtabs.map((subtab) => (
+                <li key={subtab._id} className="list-group-item">
+                    <p><strong>{subtab.title}</strong></p>
+                    {subtab.contents && subtab.contents.length > 0 && (
+                        <ul className="list-group mt-2">
+                            {subtab.contents.map((doc) => (
+                                <li key={doc._id} className="list-group-item">
+                                    <p>{doc.name}</p>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                    {subtab.subtabs && renderSubtabs(subtab.subtabs)}
+                </li>
             ))}
-        </div>
+        </ul>
     );
 
     const startEvaluation = (evaluation) => {
@@ -141,6 +129,22 @@ function CourseView() {
         }
     };
 
+    // Mapeo de estados a etiquetas legibles
+    const getStateLabel = (state) => {
+        switch (state) {
+            case "active":
+                return "Activo";
+            case "inactive":
+                return "Inactivo";
+            case "in edition":
+                return "En Edición";
+            case "published":
+                return "Publicado";
+            default:
+                return "No especificado";
+        }
+    };
+
     return (
         <div className="container my-5">
             {course ? (
@@ -165,6 +169,9 @@ function CourseView() {
                             <h1 className="display-4 fw-bold">{course.name}</h1>
                             <p className="text-muted fs-3">
                                 <strong>Profesor:</strong> {course.teacher}
+                            </p>
+                            <p className="text-muted fs-4">
+                                <strong>Estado:</strong> {getStateLabel(course.state)}
                             </p>
                             <button className="btn btn-primary mt-3">Matricularse</button>
                         </div>
@@ -195,8 +202,7 @@ function CourseView() {
                                             data-bs-parent="#courseTabsAccordion"
                                         >
                                             <div className="accordion-body">
-                                                {tab.contents && renderDocuments(tab.contents)}
-                                                {tab.subtabs && renderSubtabs(tab.subtabs, index)}
+                                                {tab.subtabs && renderSubtabs(tab.subtabs)}
                                             </div>
                                         </div>
                                     </div>
