@@ -97,7 +97,7 @@ courseRouter.post("/clone/:id", async (req, res) => {
         }
 
         // Check if the teacher already has a course with this code or name
-        const existingCourseByTeacher = await Course.findOne({ 
+        const existingCourseByTeacher = await Course.findOne({
             teacher: teacher,
             $or: [
                 { code: code },
@@ -123,9 +123,9 @@ courseRouter.post("/clone/:id", async (req, res) => {
         });
 
         await clonedCourse.save();
-        res.status(201).json({ 
-            message: "Course cloned successfully", 
-            course: clonedCourse 
+        res.status(201).json({
+            message: "Course cloned successfully",
+            course: clonedCourse
         });
 
     } catch (err) {
@@ -241,6 +241,24 @@ courseRouter.get("/:id", async (req, res) => {
     } catch (err) {
         console.error("Error fetching course:", err);
         res.status(500).json({ message: "Internal server error" });
+    }
+});
+
+// Ruta de búsqueda de cursos
+courseRouter.get("/search/:query", async (req, res) => {
+    const { query } = req.params;
+    try {
+        const courses = await Course.find({
+            $or: [
+                { name: { $regex: query, $options: 'i' } },
+                { code: { $regex: query, $options: 'i' } },
+                { teacher: { $regex: query, $options: 'i' } }
+            ]
+        });
+        res.status(200).json(courses);
+    } catch (err) {
+        console.error("Error al buscar cursos:", err);
+        res.status(500).json({ message: "Error interno del servidor" });
     }
 });
 

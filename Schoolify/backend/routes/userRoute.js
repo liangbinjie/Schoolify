@@ -17,10 +17,10 @@ userRouter.get("/:username", async (req, res) => {
   const { username } = req.params;
 
   try {
-    const user = await User.findOne({username: username})
+    const user = await User.findOne({ username: username })
       .select("-profilePicture -password -salt")
       .populate("enrolledCourses", "_id name")
-      .populate("createdCourses","_id name"); // Exclude password and salt
+      .populate("createdCourses", "_id name"); // Exclude password and salt
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
@@ -101,7 +101,7 @@ userRouter.put("/:id", upload.single("profilePicture"), async (req, res) => {
       username,
       birthDate,
     };
-    
+
     if (password && password !== "") {
       const salt = await bcrypt.genSalt(10);
       const hashedPassword = await bcrypt.hash(password, salt);
@@ -132,44 +132,44 @@ userRouter.put("/:id", upload.single("profilePicture"), async (req, res) => {
 
 // add course to user's createdCourses
 userRouter.put("/:id/add-course", async (req, res) => {
-    const { id } = req.params; // ID del usuario
-    const { courseId } = req.body; // ID del curso
+  const { id } = req.params; // ID del usuario
+  const { courseId } = req.body; // ID del curso
 
-    try {
-        const user = await User.findById(id);
-        if (!user) {
-            return res.status(404).json({ message: "User not found" });
-        }
-
-        // Agregar el ID del curso a la lista createdCourses si no está presente
-        if (!user.createdCourses.includes(courseId)) {
-            user.createdCourses.push(courseId);
-            await user.save();
-        }
-
-        res.status(200).json({ message: "Course added to createdCourses" });
-    } catch (err) {
-        console.error("Error updating createdCourses:", err);
-        res.status(500).json({ message: "Internal server error" });
+  try {
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
     }
+
+    // Agregar el ID del curso a la lista createdCourses si no está presente
+    if (!user.createdCourses.includes(courseId)) {
+      user.createdCourses.push(courseId);
+      await user.save();
+    }
+
+    res.status(200).json({ message: "Course added to createdCourses" });
+  } catch (err) {
+    console.error("Error updating createdCourses:", err);
+    res.status(500).json({ message: "Internal server error" });
+  }
 });
 
 // get user's created courses
 userRouter.get("/:id/created-courses", async (req, res) => {
-    const { id } = req.params;
+  const { id } = req.params;
 
-    try {
-        const user = await User.findById(id).select("createdCourses");
-        if (!user) {
-            return res.status(404).json({ message: "User not found" });
-        }
-
-        const courses = await Course.find({ _id: { $in: user.createdCourses } });
-        res.status(200).json(courses);
-    } catch (err) {
-        console.error("Error fetching created courses:", err);
-        res.status(500).json({ message: "Internal server error" });
+  try {
+    const user = await User.findById(id).select("createdCourses");
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
     }
+
+    const courses = await Course.find({ _id: { $in: user.createdCourses } });
+    res.status(200).json(courses);
+  } catch (err) {
+    console.error("Error fetching created courses:", err);
+    res.status(500).json({ message: "Internal server error" });
+  }
 });
 
 // delete user
@@ -206,7 +206,7 @@ userRouter.get("/me", async (req, res) => {
 userRouter.get("/:username/profile-picture", async (req, res) => {
   try {
     const username = req.params.username;
-    const user = await User.findOne({username: username}).select("profilePicture");
+    const user = await User.findOne({ username: username }).select("profilePicture");
 
     if (!user || !user.profilePicture || !user.profilePicture.data) {
       return res.status(404).json({ message: "Profile picture not found" });
@@ -214,10 +214,28 @@ userRouter.get("/:username/profile-picture", async (req, res) => {
 
     res.set("Content-Type", user.profilePicture.contentType);
     res.send(user.profilePicture.data);
-    
+
   } catch (err) {
     console.error("Error retrieving profile picture:", err);
     res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// Ruta de búsqueda de usuarios
+userRouter.get("/search/:query", async (req, res) => {
+  const { query } = req.params;
+  try {
+    const users = await User.find({
+      $or: [
+        { username: { $regex: query, $options: 'i' } },
+        { firstName: { $regex: query, $options: 'i' } },
+        { lastName: { $regex: query, $options: 'i' } }
+      ]
+    }).select("-password -salt -profilePicture");
+    res.status(200).json(users);
+  } catch (err) {
+    console.error("Error al buscar usuarios:", err);
+    res.status(500).json({ message: "Error interno del servidor" });
   }
 });
 
