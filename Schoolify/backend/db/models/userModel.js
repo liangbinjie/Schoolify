@@ -18,8 +18,8 @@ const userSchema = new mongoose.Schema({
   receivedRequests: [String],
   sentRequests: [String],
 
-  createdCourses: [{ type: mongoose.Schema.Types.ObjectId, ref: "courses" }], // Cursos creados
-  enrolledCourses: [{ type: mongoose.Schema.Types.ObjectId, ref: "courses" }], // Cursos matriculados
+  createdCourses: [{ type: mongoose.Schema.Types.ObjectId, ref: "Course" }], // Cursos creados
+  enrolledCourses: [{ type: mongoose.Schema.Types.ObjectId, ref: "Course" }], // Cursos matriculados
 });
 
 const User = mongoose.model("User", userSchema);

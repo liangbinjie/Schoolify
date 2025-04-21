@@ -10,7 +10,7 @@ const courseSchema = new mongoose.Schema({
         data: Buffer,
         contentType: String,
     },
-    studentList: { type: Array, default: [] },
+    studentList: [{ type: String }],
     teacher: { type: String, required: true },
     state: { type: String, enum: ["active", "inactive", "in edition", "published"], default: "in edition", required: true },
     tabs: [{ type: mongoose.Schema.Types.ObjectId, ref: "Tab" }], // Referencia a los tabs
