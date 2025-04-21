@@ -35,7 +35,7 @@ function App() {
                 <Route element={<AuthRoute />}>
                     <Route path="/profile" element={<Profile />} />
                     <Route path="/friend-requests" element={<FriendRequests />} />
-                    <Route path="/user/:username" element={<UserProfile />} />
+                    <Route path="/users/:username" element={<UserProfile />} />
                     <Route path="/principal" element={<WindowPrincipal />} />
                     <Route path="/course/:id" element={<CourseView />} />
                     <Route path="/create-course" element={<CreateCourse />} />
