@@ -23,7 +23,7 @@ const redis = new Redis({
 
 // Error handling
 redis.on('connect', () => {
-  console.log('[Redis] Connected successfully');
+  console.log('[Redis] Conectado con éxito');
 });
 
 redis.on('error', (err) => {
@@ -31,11 +31,11 @@ redis.on('error', (err) => {
 });
 
 redis.on('ready', () => {
-  console.log('[Redis] Client is ready');
+  console.log('[Redis] Cliente listo');
 });
 
 redis.on('reconnecting', () => {
-  console.log('[Redis] Client is reconnecting');
+  console.log('[Redis] Cliente reconectando');
 });
 
 process.on('SIGINT', () => {

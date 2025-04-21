@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthProvider";
 import axios from "axios";
 
 function EditCourse() {
@@ -982,11 +983,482 @@ function TopicsSection({ courseId }) {
 }
 
 function EvaluationsSection({ courseId }) {
+    const { user } = useAuth();
+    const [evaluations, setEvaluations] = useState([]);
+    const [showCreateForm, setShowCreateForm] = useState(false);
+    const [showQuestionForm, setShowQuestionForm] = useState(false);
+    const [showEditForm, setShowEditForm] = useState(false);
+    const [selectedEvaluation, setSelectedEvaluation] = useState(null);
+    const [editEvaluation, setEditEvaluation] = useState({
+        title: "",
+        description: "",
+        startDate: "",
+        endDate: ""
+    });
+    const [newEvaluation, setNewEvaluation] = useState({
+        title: "",
+        description: "",
+        startDate: "",
+        endDate: ""
+    });
+    const [newQuestion, setNewQuestion] = useState({
+        questionText: "",
+        options: ["", "", "", ""],
+        correctOption: 0
+    });
+    const [showResults, setShowResults] = useState(false);
+    const [evaluationResults, setEvaluationResults] = useState([]);
+
+    useEffect(() => {
+        fetchEvaluations();
+    }, [courseId]);
+
+    // Obtener evaluaciones
+    const fetchEvaluations = async () => {
+        try {
+            const response = await axios.get(`http://localhost:5000/api/evaluations/${courseId}`);
+            setEvaluations(response.data);
+        } catch (error) {
+            console.error("Error al obtener evaluaciones:", error);
+        }
+    };
+
+    // Crear evaluación
+    const createEvaluation = async (e) => {
+        e.preventDefault();
+        try {
+            if (!user || !user._id) {
+                alert("Error: No se puede identificar el usuario actual");
+                return;
+            }
+            
+            const response = await axios.post(`http://localhost:5000/api/evaluations/${courseId}`, {
+                title: newEvaluation.title,
+                description: newEvaluation.description,
+                startDate: newEvaluation.startDate,
+                endDate: newEvaluation.endDate,
+                createdBy: user._id
+            });
+
+            setEvaluations([...evaluations, response.data.evaluation]);
+            setNewEvaluation({
+                title: "",
+                description: "",
+                startDate: "",
+                endDate: ""
+            });
+            setShowCreateForm(false);
+            alert("Evaluación creada exitosamente");
+        } catch (error) {
+            console.error("Error al crear evaluación:", error);
+            alert("Error al crear la evaluación");
+        }
+    };
+
+    // Abrir formulario de edición
+    const openEditForm = (evaluation) => {
+        setSelectedEvaluation(evaluation);
+        setEditEvaluation({
+            title: evaluation.title,
+            description: evaluation.description || "",
+            startDate: formatDateForInput(evaluation.startDate),
+            endDate: formatDateForInput(evaluation.endDate)
+        });
+        setShowEditForm(true);
+    };
+
+    // Formatear fecha para input datetime-local
+    const formatDateForInput = (dateString) => {
+        const date = new Date(dateString);
+        return date.toISOString().slice(0, 16);
+    };
+
+    // Actualizar evaluación
+    const updateEvaluation = async (e) => {
+        e.preventDefault();
+        try {
+            const response = await axios.put(`http://localhost:5000/api/evaluations/${courseId}/${selectedEvaluation._id}`, {
+                title: editEvaluation.title,
+                description: editEvaluation.description,
+                startDate: editEvaluation.startDate,
+                endDate: editEvaluation.endDate
+            });
+
+            // Actualizar la lista de evaluaciones
+            setEvaluations(evaluations.map(evaluation => 
+                evaluation._id === selectedEvaluation._id ? response.data : evaluation
+            ));
+            
+            setShowEditForm(false);
+            alert("Evaluación actualizada exitosamente");
+        } catch (error) {
+            console.error("Error al actualizar evaluación:", error);
+            alert("Error al actualizar la evaluación");
+        }
+    };
+
+    // Eliminar evaluación
+    const deleteEvaluation = async (evaluationId) => {
+        if (!confirm("¿Estás seguro de eliminar esta evaluación? Esta acción no se puede deshacer.")) {
+            return;
+        }
+        
+        try {
+            await axios.delete(`http://localhost:5000/api/evaluations/${courseId}/${evaluationId}`);
+            setEvaluations(evaluations.filter(evaluation => evaluation._id !== evaluationId));
+            alert("Evaluación eliminada exitosamente");
+        } catch (error) {
+            console.error("Error al eliminar evaluación:", error);
+            alert("Error al eliminar la evaluación");
+        }
+    };
+
+    // Eliminar pregunta específica
+    const deleteQuestion = async (evaluationId, questionIndex) => {
+        if (!confirm("¿Estás seguro de eliminar esta pregunta? Esta acción no se puede deshacer.")) {
+            return;
+        }
+        
+        try {
+            const evaluation = evaluations.find(e => e._id === evaluationId);
+            if (!evaluation) return;
+            
+            const updatedQuestions = evaluation.questions.filter((_, index) => index !== questionIndex);
+            
+            const response = await axios.put(`http://localhost:5000/api/evaluations/${courseId}/${evaluationId}`, {
+                questions: updatedQuestions
+            });
+            
+            // Actualizar la lista de evaluaciones
+            setEvaluations(evaluations.map(evaluation => 
+                evaluation._id === evaluationId ? response.data : evaluation
+            ));
+            
+            alert("Pregunta eliminada exitosamente");
+        } catch (error) {
+            console.error("Error al eliminar pregunta:", error);
+            alert("Error al eliminar la pregunta");
+        }
+    };
+
+    // Agrega esta función para abrir el formulario de preguntas
+    const openQuestionForm = (evaluation) => {
+        setSelectedEvaluation(evaluation);
+        setShowQuestionForm(true);
+    };
+
+    const handleNewEvaluationChange = (e) => {
+        const { name, value } = e.target;
+        setNewEvaluation({ ...newEvaluation, [name]: value });
+    };
+    
+    const handleEditEvaluationChange = (e) => {
+        const { name, value } = e.target;
+        setEditEvaluation({ ...editEvaluation, [name]: value });
+    };
+
+    // Agregar pregunta a una evaluación existente
+    const addQuestion = async (e) => {
+        e.preventDefault();
+        if (!selectedEvaluation) return;
+
+        try {
+            // Obtener la evaluación actual para actualizar sus preguntas
+            const currentEvaluation = evaluations.find(e => e._id === selectedEvaluation._id);
+            const updatedQuestions = [...(currentEvaluation.questions || []), {
+                questionText: newQuestion.questionText,
+                options: newQuestion.options,
+                correctOption: newQuestion.correctOption
+            }];
+            
+            const response = await axios.put(`http://localhost:5000/api/evaluations/${courseId}/${selectedEvaluation._id}`, {
+                questions: updatedQuestions
+            });
+            
+            // Actualizar la lista de evaluaciones
+            setEvaluations(evaluations.map(evaluation => 
+                evaluation._id === selectedEvaluation._id ? response.data : evaluation
+            ));
+            
+            // Limpiar formulario
+            setNewQuestion({
+                questionText: "",
+                options: ["", "", "", ""],
+                correctOption: 0
+            });
+            setShowQuestionForm(false);
+            alert("Pregunta agregada exitosamente");
+        } catch (error) {
+            console.error("Error al agregar la pregunta:", error);
+            alert("Error al agregar la pregunta");
+        }
+    };
+
     return (
         <div>
-            <h2>Evaluaciones</h2>
-            <p>Aquí podrás crear evaluaciones para el curso.</p>
-            {/* Implementación futura */}
+            <div className="d-flex justify-content-between align-items-center mb-4">
+                <h2>Evaluaciones</h2>
+                <button 
+                    className="btn btn-primary" 
+                    onClick={() => setShowCreateForm(!showCreateForm)}
+                >
+                    {showCreateForm ? "Cancelar" : "Crear Evaluación"}
+                </button>
+            </div>
+
+            {/* Formulario de creación de evaluación */}
+            {showCreateForm && (
+                <div className="card mb-4">
+                    <div className="card-header">Nueva Evaluación</div>
+                    <div className="card-body">
+                        <form onSubmit={createEvaluation}>
+                            {/* Formulario existente... */}
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Formulario de edición de evaluación */}
+            {showEditForm && selectedEvaluation && (
+                <div className="card mb-4">
+                    <div className="card-header">
+                        <div className="d-flex justify-content-between align-items-center">
+                            <span>Editar Evaluación</span>
+                            <button 
+                                className="btn-close" 
+                                onClick={() => setShowEditForm(false)}
+                            ></button>
+                        </div>
+                    </div>
+                    <div className="card-body">
+                        <form onSubmit={updateEvaluation}>
+                            <div className="mb-3">
+                                <label className="form-label">Título</label>
+                                <input
+                                    type="text"
+                                    className="form-control"
+                                    name="title"
+                                    value={editEvaluation.title}
+                                    onChange={handleEditEvaluationChange}
+                                    required
+                                />
+                            </div>
+                            <div className="mb-3">
+                                <label className="form-label">Descripción</label>
+                                <textarea
+                                    className="form-control"
+                                    name="description"
+                                    value={editEvaluation.description}
+                                    onChange={handleEditEvaluationChange}
+                                ></textarea>
+                            </div>
+                            <div className="mb-3">
+                                <label className="form-label">Fecha de inicio</label>
+                                <input
+                                    type="datetime-local"
+                                    className="form-control"
+                                    name="startDate"
+                                    value={editEvaluation.startDate}
+                                    onChange={handleEditEvaluationChange}
+                                    required
+                                />
+                            </div>
+                            <div className="mb-3">
+                                <label className="form-label">Fecha de finalización</label>
+                                <input
+                                    type="datetime-local"
+                                    className="form-control"
+                                    name="endDate"
+                                    value={editEvaluation.endDate}
+                                    onChange={handleEditEvaluationChange}
+                                    required
+                                />
+                            </div>
+                            <button type="submit" className="btn btn-primary">
+                                Guardar Cambios
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Formulario para agregar preguntas */}
+            {showQuestionForm && selectedEvaluation && (
+                <div className="card mb-4">
+                    <div className="card-header">
+                        <div className="d-flex justify-content-between align-items-center">
+                            <span>Agregar Pregunta a: {selectedEvaluation.title}</span>
+                            <button 
+                                className="btn-close" 
+                                onClick={() => setShowQuestionForm(false)}
+                            ></button>
+                        </div>
+                    </div>
+                    <div className="card-body">
+                        <form onSubmit={(e) => addQuestion(e)}>
+                            <div className="mb-3">
+                                <label className="form-label">Pregunta</label>
+                                <textarea
+                                    className="form-control"
+                                    name="questionText"
+                                    value={newQuestion.questionText}
+                                    onChange={(e) => setNewQuestion({...newQuestion, questionText: e.target.value})}
+                                    required
+                                ></textarea>
+                            </div>
+                            
+                            <div className="mb-3">
+                                <label className="form-label">Opciones (selecciona la correcta)</label>
+                                {newQuestion.options.map((option, index) => (
+                                    <div key={index} className="input-group mb-2">
+                                        <div className="input-group-text">
+                                            <input
+                                                type="radio"
+                                                name="correctOption"
+                                                checked={newQuestion.correctOption === index}
+                                                onChange={() => setNewQuestion({...newQuestion, correctOption: index})}
+                                                required
+                                            />
+                                        </div>
+                                        <input
+                                            type="text"
+                                            className="form-control"
+                                            value={option}
+                                            onChange={(e) => {
+                                                const updatedOptions = [...newQuestion.options];
+                                                updatedOptions[index] = e.target.value;
+                                                setNewQuestion({...newQuestion, options: updatedOptions});
+                                            }}
+                                            placeholder={`Opción ${index + 1}`}
+                                            required
+                                        />
+                                        {newQuestion.options.length > 2 && (
+                                            <button 
+                                                type="button" 
+                                                className="btn btn-outline-danger"
+                                                onClick={() => {
+                                                    const updatedOptions = newQuestion.options.filter((_, i) => i !== index);
+                                                    const updatedCorrectOption = newQuestion.correctOption >= index && newQuestion.correctOption > 0 
+                                                        ? newQuestion.correctOption - 1 
+                                                        : newQuestion.correctOption;
+                                                    setNewQuestion({
+                                                        ...newQuestion, 
+                                                        options: updatedOptions,
+                                                        correctOption: updatedCorrectOption
+                                                    });
+                                                }}
+                                            >
+                                                <i className="bi bi-trash"></i>
+                                            </button>
+                                        )}
+                                    </div>
+                                ))}
+                                {newQuestion.options.length < 6 && (
+                                    <button 
+                                        type="button" 
+                                        className="btn btn-sm btn-outline-secondary"
+                                        onClick={() => setNewQuestion({
+                                            ...newQuestion,
+                                            options: [...newQuestion.options, ""]
+                                        })}
+                                    >
+                                        <i className="bi bi-plus"></i> Agregar opción
+                                    </button>
+                                )}
+                            </div>
+                            
+                            <button type="submit" className="btn btn-success">
+                                Guardar Pregunta
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Lista de evaluaciones */}
+            <div className="list-group mt-3">
+                {evaluations.length > 0 ? (
+                    evaluations.map((evaluation) => (
+                        <div key={evaluation._id} className="list-group-item list-group-item-action">
+                            <div className="d-flex w-100 justify-content-between align-items-center mb-2">
+                                <h5 className="mb-1">{evaluation.title}</h5>
+                                <div className="btn-group">
+                                    <button 
+                                        className="btn btn-sm btn-outline-primary" 
+                                        onClick={() => openEditForm(evaluation)}
+                                    >
+                                        <i className="bi bi-pencil"></i> Editar
+                                    </button>
+                                    <button 
+                                        className="btn btn-sm btn-outline-danger" 
+                                        onClick={() => deleteEvaluation(evaluation._id)}
+                                    >
+                                        <i className="bi bi-trash"></i> Eliminar
+                                    </button>
+                                </div>
+                            </div>
+                            <p className="mb-1">{evaluation.description}</p>
+                            <small>
+                                <strong>Inicio:</strong> {new Date(evaluation.startDate).toLocaleString()} | 
+                                <strong> Finalización:</strong> {new Date(evaluation.endDate).toLocaleString()}
+                            </small>
+                            
+                            {/* Preguntas de la evaluación */}
+                            <div className="mt-3">
+                                <div className="d-flex justify-content-between align-items-center">
+                                    <h6>Preguntas ({evaluation.questions?.length || 0})</h6>
+                                    <button 
+                                        className="btn btn-sm btn-primary" 
+                                        onClick={() => openQuestionForm(evaluation)}
+                                    >
+                                        <i className="bi bi-plus"></i> Agregar Pregunta
+                                    </button>
+                                </div>
+                                
+                                {evaluation.questions && evaluation.questions.length > 0 ? (
+                                    <div className="list-group mt-2">
+                                        {evaluation.questions.map((q, idx) => (
+                                            <div key={idx} className="list-group-item">
+                                                <div className="d-flex justify-content-between align-items-start">
+                                                    <div>
+                                                        <strong>{idx + 1}. {q.questionText}</strong>
+                                                        <div className="mt-2">
+                                                            <small className="text-muted">Opciones:</small>
+                                                            <ul className="list-unstyled ms-3">
+                                                                {q.options.map((option, optIdx) => (
+                                                                    <li key={optIdx}>
+                                                                        <small>
+                                                                            {optIdx === q.correctOption ? 
+                                                                                <span className="text-success">✓ {option}</span> : 
+                                                                                option}
+                                                                        </small>
+                                                                    </li>
+                                                                ))}
+                                                            </ul>
+                                                        </div>
+                                                    </div>
+                                                    <button 
+                                                        className="btn btn-sm btn-outline-danger"
+                                                        onClick={() => deleteQuestion(evaluation._id, idx)}
+                                                    >
+                                                        <i className="bi bi-trash"></i>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <p className="text-muted">No hay preguntas agregadas.</p>
+                                )}
+                            </div>
+                        </div>
+                    ))
+                ) : (
+                    <div className="alert alert-info">
+                        No hay evaluaciones creadas para este curso.
+                    </div>
+                )}
+            </div>
         </div>
     );
 }

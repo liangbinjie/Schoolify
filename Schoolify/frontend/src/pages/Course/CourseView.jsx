@@ -1,24 +1,22 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import axios from "axios";
-import { useAuth } from "../../context/AuthProvider"; // Importar el contexto de autenticación
+import { useAuth } from "../../context/AuthProvider"; // Assuming you have an AuthContext
 
 function CourseView() {
     const { id: courseId } = useParams();
     const [course, setCourse] = useState(null);
     const [tabs, setTabs] = useState([]);
-    const [isEnrolled, setIsEnrolled] = useState(false);
-    const [viewingStudents, setViewingStudents] = useState(false);
-    const { user, updateUser } = useAuth(); // Obtener el usuario autenticado
+    const [evaluations, setEvaluations] = useState([]);
+    const [activeEvaluation, setActiveEvaluation] = useState(null);
+    const [currentAnswers, setCurrentAnswers] = useState([]);
+    const { user } = useAuth();
 
     useEffect(() => {
         const fetchCourse = async () => {
             try {
                 const response = await axios.get(`http://localhost:5000/courses/${courseId}`);
                 setCourse(response.data);
-                if (response.data.studentList.includes(user.username)) {
-                    setIsEnrolled(true);
-                }
             } catch (error) {
                 console.error("Error fetching course details:", error);
             }
@@ -34,9 +32,22 @@ function CourseView() {
             }
         };
 
+        const fetchEvaluations = async () => {
+            try {
+                const response = await axios.get(`http://localhost:5000/api/evaluations/${courseId}`);
+                const now = new Date();
+                const activeEvals = response.data.filter(
+                    evaluation => new Date(evaluation.startDate) <= now && new Date(evaluation.endDate) >= now
+                );
+                setEvaluations(activeEvals);
+            } catch (error) {
+                console.error("Error fetching evaluations:", error);
+            }
+        };
+
         fetchCourse();
         fetchTabs();
-
+        fetchEvaluations();
     }, [courseId]);
 
     const renderDocuments = (documents) => {
@@ -87,45 +98,48 @@ function CourseView() {
         </div>
     );
 
-    const handleEnroll = async (courseId) => {
-        try {
-            const response = await axios.post(`http://localhost:5000/api/enrollment/enroll`, {
-                courseID: courseId,
-                userID: user._id,
-            });
+    const startEvaluation = (evaluation) => {
+        setActiveEvaluation(evaluation);
+        setCurrentAnswers(Array(evaluation.questions.length).fill(null));
+    };
 
-            if (response.status == 200) {
-                setIsEnrolled(true);
-                updateUser(response.data.user); // Actualiza el usuario en el contexto
-            }
-            console.log("Enrollment response:", response.data);
-        } catch (error) {
-            console.error("Error enrolling in course:", error);
+    const handleAnswerSelection = (questionIndex, optionIndex) => {
+        const newAnswers = [...currentAnswers];
+        newAnswers[questionIndex] = optionIndex;
+        setCurrentAnswers(newAnswers);
+    };
+
+    const submitEvaluation = async () => {
+        if (currentAnswers.includes(null)) {
+            alert("Por favor responde todas las preguntas antes de enviar");
+            return;
         }
-    }
 
-    const handleUnenroll = async (courseId) => {
         try {
-            const response = await axios.post(`http://localhost:5000/api/enrollment/unenroll`, {
-                courseID: courseId,
-                userID: user._id,
+            await axios.post(`http://localhost:5000/api/evaluations/${activeEvaluation._id}/submit`, {
+                studentId: user._id,
+                answers: currentAnswers
             });
-
-            if (response.status == 200) {
-                setIsEnrolled(false);
-                updateUser(response.data.user); // Actualiza el usuario en el contexto
-            }
-            console.log("Unenrollment response:", response.data);
-            // Aquí puedes manejar la respuesta después de la desmatrícula
+            alert("Evaluación enviada correctamente");
+            setActiveEvaluation(null);
+            const fetchEvaluations = async () => {
+                try {
+                    const response = await axios.get(`http://localhost:5000/api/evaluations/${courseId}`);
+                    const now = new Date();
+                    const activeEvals = response.data.filter(
+                        evaluation => new Date(evaluation.startDate) <= now && new Date(evaluation.endDate) >= now
+                    );
+                    setEvaluations(activeEvals);
+                } catch (error) {
+                    console.error("Error fetching evaluations:", error);
+                }
+            };
+            fetchEvaluations();
         } catch (error) {
-            console.error("Error unenrolling from course:", error);
+            console.error("Error submitting evaluation:", error);
+            alert("Error al enviar la evaluación");
         }
-    }
-
-
-    const handleViewStudents = () => {
-        setViewingStudents(viewingStudents => !viewingStudents);
-    }
+    };
 
     return (
         <div className="container my-5">
@@ -152,77 +166,115 @@ function CourseView() {
                             <p className="text-muted fs-3">
                                 <strong>Profesor:</strong> {course.teacher}
                             </p>
-                            {course.teacher !== user.username &&
-                                (isEnrolled ? (
-                                    <button className="btn btn-danger mt-3" onClick={() => handleUnenroll(course._id)}>Desmatricularse</button>
-                                ) : (
-                                    <button className="btn btn-primary mt-3" onClick={() => handleEnroll(course._id)}>Matricularse</button>
-                                ))
-                            }
-                            <button className="btn btn-info mt-3 ms-3" onClick={handleViewStudents}>
-                                {viewingStudents ? "Ver Temas del Curso" : "Ver Lista de Estudiantes"}
-                            </button>
+                            <button className="btn btn-primary mt-3">Matricularse</button>
                         </div>
                     </div>
 
-                    {viewingStudents ? (
-                        <div className="card mt-4">
-                            <div className="card-body">
-                                <h5 className="card-title">Lista de Estudiantes</h5>
-                                <table className="table">
-                                    <thead>
-                                        <tr>
-                                            <th>#</th>
-                                            <th>Nombre de Usuario</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {course.studentList.map((student, index) => (
-                                            <tr key={student}>
-                                                <td>{index + 1}</td>
-                                                <td>
-                                                    <a href={`http://localhost:5173/user/${student}`} rel="noopener noreferrer">
-                                                        {student}
-                                                    </a>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="card mt-4">
-                            <div className="card-body">
-                                <h5 className="card-title">Temas del Curso</h5>
-                                <div className="accordion" id="courseTabsAccordion">
-                                    {tabs.map((tab, index) => (
-                                        <div className="accordion-item" key={tab._id}>
-                                            <h2 className="accordion-header" id={`heading-${index}`}>
-                                                <button
-                                                    className="accordion-button"
-                                                    type="button"
-                                                    data-bs-toggle="collapse"
-                                                    data-bs-target={`#collapse-${index}`}
-                                                    aria-expanded="false"
-                                                    aria-controls={`collapse-${index}`}
-                                                >
-                                                    {tab.title}
-                                                </button>
-                                            </h2>
-                                            <div
-                                                id={`collapse-${index}`}
-                                                className="accordion-collapse collapse"
-                                                aria-labelledby={`heading-${index}`}
-                                                data-bs-parent="#courseTabsAccordion"
+                    <div className="card mt-4">
+                        <div className="card-body">
+                            <h5 className="card-title">Temas del Curso</h5>
+                            <div className="accordion" id="courseTabsAccordion">
+                                {tabs.map((tab, index) => (
+                                    <div className="accordion-item" key={tab._id}>
+                                        <h2 className="accordion-header" id={`heading-${index}`}>
+                                            <button
+                                                className="accordion-button"
+                                                type="button"
+                                                data-bs-toggle="collapse"
+                                                data-bs-target={`#collapse-${index}`}
+                                                aria-expanded="false"
+                                                aria-controls={`collapse-${index}`}
                                             >
-                                                <div className="accordion-body">
-                                                    {tab.contents && renderDocuments(tab.contents)}
-                                                    {tab.subtabs && renderSubtabs(tab.subtabs, index)}
-                                                </div>
+                                                {tab.title}
+                                            </button>
+                                        </h2>
+                                        <div
+                                            id={`collapse-${index}`}
+                                            className="accordion-collapse collapse"
+                                            aria-labelledby={`heading-${index}`}
+                                            data-bs-parent="#courseTabsAccordion"
+                                        >
+                                            <div className="accordion-body">
+                                                {tab.contents && renderDocuments(tab.contents)}
+                                                {tab.subtabs && renderSubtabs(tab.subtabs, index)}
                                             </div>
                                         </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+
+                    {evaluations.length > 0 && (
+                        <div className="card mt-4">
+                            <div className="card-body">
+                                <h5 className="card-title">Evaluaciones Disponibles</h5>
+                                <div className="list-group">
+                                    {evaluations.map(evaluation => (
+                                        <div key={evaluation._id} className="list-group-item list-group-item-action">
+                                            <div className="d-flex w-100 justify-content-between">
+                                                <h5 className="mb-1">{evaluation.title}</h5>
+                                                <small>Disponible hasta: {new Date(evaluation.endDate).toLocaleString()}</small>
+                                            </div>
+                                            <p className="mb-1">{evaluation.description}</p>
+                                            <small>Preguntas: {evaluation.questions.length}</small>
+                                            <button 
+                                                className="btn btn-primary btn-sm mt-2"
+                                                onClick={() => startEvaluation(evaluation)}
+                                            >
+                                                Iniciar Evaluación
+                                            </button>
+                                        </div>
                                     ))}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {activeEvaluation && (
+                        <div className="modal d-block" style={{backgroundColor: "rgba(0,0,0,0.5)"}}>
+                            <div className="modal-dialog modal-lg">
+                                <div className="modal-content">
+                                    <div className="modal-header">
+                                        <h5 className="modal-title">{activeEvaluation.title}</h5>
+                                    </div>
+                                    <div className="modal-body">
+                                        {activeEvaluation.questions.map((question, qIndex) => (
+                                            <div key={qIndex} className="mb-4">
+                                                <h6 className="mb-3">{qIndex + 1}. {question.questionText}</h6>
+                                                <div className="list-group">
+                                                    {question.options.map((option, oIndex) => (
+                                                        <button
+                                                            key={oIndex}
+                                                            type="button"
+                                                            className={`list-group-item list-group-item-action ${
+                                                                currentAnswers[qIndex] === oIndex ? 'active' : ''
+                                                            }`}
+                                                            onClick={() => handleAnswerSelection(qIndex, oIndex)}
+                                                        >
+                                                            {option}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div className="modal-footer">
+                                        <button 
+                                            type="button" 
+                                            className="btn btn-secondary" 
+                                            onClick={() => setActiveEvaluation(null)}
+                                        >
+                                            Cancelar
+                                        </button>
+                                        <button 
+                                            type="button" 
+                                            className="btn btn-primary" 
+                                            onClick={submitEvaluation}
+                                        >
+                                            Enviar Respuestas
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
