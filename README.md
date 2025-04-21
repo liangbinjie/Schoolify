@@ -36,13 +36,13 @@ Proyecto Bases II 2025
 
 ## Interacción Estudiantil
 - [x] **HU12**: Como estudiante, debo buscar cursos publicados y ver su información.
-- [ ] **HU13**: Como estudiante, debo matricularme a un curso.
-- [ ] **HU14**: Como estudiante, debo ver lista de cursos matriculados.
+- [x] **HU13**: Como estudiante, debo matricularme a un curso.
+- [x] **HU14**: Como estudiante, debo ver lista de cursos matriculados.
 - [ ] **HU15**: Como estudiante, debo ver secciones/contenido de un curso.
 - [ ] **HU16**: Como estudiante, debo realizar evaluaciones y ver resultado inmediato.
 - [ ] **HU17**: Como estudiante, debo ver resultados de todas mis evaluaciones por curso.
 - [ ] **HU18**: Como estudiante, debo enviar consultas a docentes mediante mensajes.
-- [ ] **HU19**: Como estudiante, debo ver lista de otros estudiantes en el curso.
+- [x] **HU19**: Como estudiante, debo ver lista de otros estudiantes en el curso.
 
 ## Red Social y Mensajería
 - [x] **HU20**: Como usuario, debo poder hacerme amigo de otros usuarios (ver sus cursos como docente/estudiante, sin notas).
