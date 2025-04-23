@@ -192,7 +192,7 @@ function CourseView() {
 
     const handleCloneCourse = async () => {
         try {
-            const response = await axios.post(`http://localhost:5000/courses/clone/${courseId}`, {
+            const response = await axios.post(`http://localhost:5000/api/courses/clone/${courseId}`, {
                 code: `${course.code}-clone`,
                 name: `${course.name} (Clone)`,
                 description: course.description,
