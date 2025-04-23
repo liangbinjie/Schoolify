@@ -1,13 +1,13 @@
 import redis from '../../db/redis.js';
 
 export default function setupSocketIO(io) {
-  // Log when the socket server starts
+  // Registro cuando el servidor de socket comienza
   console.log('[Socket Server] Initializing...');
 
   io.on("connection", (socket) => {
     console.log("[Socket Server] New connection:", socket.id);
     
-    // Store user information when they connect
+    // Almacenar información del usuario cuando se conectan
     const userInfo = {
       id: socket.id,
       username: socket.handshake.query.username || 'anonymous',
@@ -16,28 +16,28 @@ export default function setupSocketIO(io) {
     
     console.log("[Socket Server] User connected:", userInfo);
 
-    // Test Redis connection on user connect
+    // Prueba de conexión de Redis en la conexión del usuario
     redis.ping().then(() => {
-      console.log('[Redis] Connection test successful');
+      console.log('[Redis] Prueba de conexión exitosa');
     }).catch(err => {
-      console.error('[Redis] Connection test failed:', err);
+      console.error('[Redis] Prueba de conexión fallida:', err);
     });
     
-    // Join a personal room for direct messages
+    // Unirse a una sala personal para mensajes directos
     if (userInfo.username !== 'anonymous') {
       socket.join(`user:${userInfo.username}`);
-      console.log(`[Socket Server] User ${userInfo.username} joined personal room`);
+      console.log(`[Socket Server] Usuario ${userInfo.username} se unió a la sala personal`);
     }
 
-    // Handle joining a chat room
+    // Manejar unirse a una sala de chat
     socket.on("joinRoom", async ({ roomId }) => {
       try {
-        console.log(`[Socket Server] User ${userInfo.username} joining room:`, roomId);
+        console.log(`[Socket Server] Usuario ${userInfo.username} se une a la sala:`, roomId);
         socket.join(roomId);
 
-        // Get message history from Redis
+        // Obtener el historial de mensajes con Redis
         const messages = await redis.lrange(`chat:${roomId}`, 0, -1);
-        console.log(`[Redis] Retrieved ${messages.length} messages for room ${roomId}`);
+        console.log(`[Redis] Obtenidos ${messages.length} mensajes para la sala ${roomId}`);
         
         const parsed = messages.map((msg) => {
           try {
@@ -55,10 +55,10 @@ export default function setupSocketIO(io) {
       }
     });
 
-    // Handle sending a message
+    // Manejar enviar un mensaje
     socket.on("sendMessage", async ({ roomId, message }) => {
       if (!roomId || !message) {
-        console.error('[Socket Server] Invalid message data:', {
+        console.error('[Socket Server] Datos de mensaje inválidos:', {
           roomId,
           message
         });
@@ -73,7 +73,7 @@ export default function setupSocketIO(io) {
       });
 
       try {
-        // Ensure message has required fields
+        // Asegurar que el mensaje tenga los campos requeridos
         const messageData = {
           content: message.content,
           sender: message.sender,
@@ -88,17 +88,17 @@ export default function setupSocketIO(io) {
 
         console.log("[Socket Server] Processed message data:", messageData);
 
-        // Save message to Redis
+        // Guardar mensaje en Redis
         await redis.rpush(`chat:${roomId}`, JSON.stringify(messageData));
-        console.log(`[Redis] Message saved for room ${roomId}`);
+        console.log(`[Redis] Mensaje guardado para la sala ${roomId}`);
 
-        // Emit message to all users in the room
+        // Emitir mensaje a todos los usuarios en la sala
         io.to(roomId).emit("receiveMessage", messageData);
-        console.log(`[Socket Server] Message emitted to room ${roomId}`);
+        console.log(`[Socket Server] Mensaje emitido a la sala ${roomId}`);
 
-        // Also emit to recipient's personal room
+        // También emitir a la sala personal del destinatario
         io.to(`user:${messageData.receiver}`).emit("newMessage", messageData);
-        console.log(`[Socket Server] Message sent to recipient's personal room: ${messageData.receiver}`);
+        console.log(`[Socket Server] Mensaje enviado a la sala personal del destinatario: ${messageData.receiver}`);
       } catch (err) {
         console.error(`[Socket Server] Error handling message:`, err);
         socket.emit('messageError', {
@@ -107,9 +107,9 @@ export default function setupSocketIO(io) {
       }
     });
     
-    // Handle marking messages as read
+    // Manejar marcar mensajes como leídos
     socket.on("markAsRead", async ({ roomId, username }) => {
-      console.log(`[Socket Server] Marking messages as read in room ${roomId} by ${username}`);
+      console.log(`[Socket Server] Marcar mensajes como leídos en la sala ${roomId} por ${username}`);
       try {
         const messages = await redis.lrange(`chat:${roomId}`, 0, -1);
         const parsedMessages = messages.map(msg => JSON.parse(msg));
@@ -147,10 +147,10 @@ export default function setupSocketIO(io) {
       }
     });
     
-    // Handle typing indicators
+    // Manejar indicadores de escritura
     socket.on("typing", ({ roomId, username, isTyping }) => {
       if (!roomId || !username) {
-        console.error('[Socket Server] Invalid typing indicator data:', {
+        console.error('[Socket Server] Datos de indicador de escritura inválidos:', {
           roomId,
           username,
           isTyping
@@ -162,14 +162,14 @@ export default function setupSocketIO(io) {
       socket.to(roomId).emit("userTyping", { username, isTyping });
     });
 
-    // Handle disconnection
+    // Manejar desconexión
     socket.on("disconnect", () => {
-      console.log("[Socket Server] User disconnected:", userInfo.username);
+      console.log("[Socket Server] Usuario desconectado:", userInfo.username);
     });
 
-    // Handle errors
+    // Manejar errores
     socket.on('error', (error) => {
-      console.error('[Socket Server] Socket error:', error);
+      console.error('[Socket Server] Error del socket:', error);
     });
   });
 }
