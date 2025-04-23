@@ -1040,7 +1040,9 @@ function EvaluationsSection({ courseId }) {
                 createdBy: user._id
             });
 
-            setEvaluations([...evaluations, response.data.evaluation]);
+            // En lugar de response.data.evaluation, usar directamente response.data
+            setEvaluations([...evaluations, response.data]);
+            
             setNewEvaluation({
                 title: "",
                 description: "",
