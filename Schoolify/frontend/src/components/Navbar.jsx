@@ -40,7 +40,7 @@ function Navbar() {
       setIsLoading(true);
       try {
         // Obtener resultados del endpoint correspondiente
-        const url = `${process.env.REACT_APP_API_URL}/api/${searchType}/search/${searchQuery}`;
+        const url = `http://localhost:5000/api/${searchType}/search/${searchQuery}`;
         console.log('Search URL:', url);
         const response = await fetch(url);
         console.log('Search Response:', response);
