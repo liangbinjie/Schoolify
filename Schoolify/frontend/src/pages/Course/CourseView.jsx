@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../../context/AuthProvider"; // Assuming you have an AuthContext
 
@@ -13,6 +13,7 @@ function CourseView() {
     const [isEnrolled, setIsEnrolled] = useState(false);
     const [viewingStudents, setViewingStudents] = useState(false);
     const { user } = useAuth();
+    const navigate = useNavigate();
 
     useEffect(() => {
         const fetchCourse = async () => {
@@ -189,6 +190,24 @@ function CourseView() {
         setViewingStudents(viewingStudents => !viewingStudents);
     }
 
+    const handleCloneCourse = async () => {
+        try {
+            const response = await axios.post(`http://localhost:5000/courses/clone/${courseId}`, {
+                code: `${course.code}-clone`,
+                name: `${course.name} (Clone)`,
+                description: course.description,
+                startDate: course.startDate,
+                endDate: course.endDate,
+                teacher: course.teacher
+            });
+            alert('Curso clonado exitosamente!');
+            navigate(`/course/${response.data.course._id}`);
+        } catch (error) {
+            console.error('Error al clonar el curso:', error);
+            alert('Error al clonar el curso. Por favor, inténtelo de nuevo.');
+        }
+    };
+
     return (
         <div className="container my-5">
             {course ? (
@@ -226,6 +245,9 @@ function CourseView() {
                             }
                             <button className="btn btn-info mt-3 ms-3" onClick={handleViewStudents}>
                                 {viewingStudents ? "Ver Temas del Curso" : "Ver Lista de Estudiantes"}
+                            </button>
+                            <button className="btn btn-secondary mt-3 ms-3" onClick={handleCloneCourse}>
+                                Clonar Curso
                             </button>
                         </div>
                     </div>
