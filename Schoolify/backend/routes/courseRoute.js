@@ -19,9 +19,9 @@ courseRouter.post("/", upload.single("image"), async (req, res) => {
             return res.status(400).json({ message: "Please fill in all required fields" });
         }
 
-        // Find the user by teacher name
-        const [firstName, lastName] = teacher.split(" ");
-        const user = await User.findOne({ firstName, lastName });
+        // Find the user by teacher username
+        
+        const user = await User.findOne({ teacher });
 
         if (!user) {
             return res.status(404).json({ message: "Teacher not found" });
