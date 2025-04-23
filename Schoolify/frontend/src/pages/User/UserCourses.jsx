@@ -38,7 +38,7 @@ function UserCourses({ userId }) {
 
     const handleCloneCourse = async (course) => {
         try {
-            const response = await axios.post(`http://localhost:5000/courses/clone/${course._id}`, {
+            const response = await axios.post(`http://localhost:5000/api/courses/clone/${course._id}`, {
                 code: `${course.code}-clone`,
                 name: `${course.name} (Clone)`,
                 description: course.description,
