@@ -4,7 +4,29 @@ import EvaluationResult from "../db/models/evaluationResultModel.js";
 
 const evaluationRouter = express.Router();
 
-
+// Crear una nueva evaluación
+evaluationRouter.post("/:courseId", async (req, res) => {
+  try {
+    const { courseId } = req.params;
+    const { title, description, questions, startDate, endDate, createdBy } = req.body;
+    
+    const newEvaluation = new Evaluation({
+      course: courseId,
+      title,
+      description,
+      questions: questions || [],
+      startDate,
+      endDate,
+      createdBy
+    });
+    
+    const savedEvaluation = await newEvaluation.save();
+    res.status(201).json(savedEvaluation);
+  } catch (err) {
+    console.error("Error creating evaluation:", err);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
 
 // Obtener evaluaciones de un curso
 evaluationRouter.get("/:courseId", async (req, res) => {
