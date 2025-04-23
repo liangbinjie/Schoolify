@@ -38,7 +38,9 @@ function UserCourses({ userId }) {
 
     const handleCloneCourse = async (course) => {
         try {
-            const response = await axios.post(`http://localhost:5000/api/courses/clone/${course._id}`, {
+            const url = `http://localhost:5000/api/courses/clone/${course._id}`;
+            console.log('Clone URL:', url);
+            const response = await axios.post(url, {
                 code: `${course.code}-clone`,
                 name: `${course.name} (Clone)`,
                 description: course.description,
@@ -46,8 +48,8 @@ function UserCourses({ userId }) {
                 endDate: course.endDate,
                 teacher: course.teacher
             });
+            console.log('Clone Response:', response);
             alert('Curso clonado exitosamente!');
-            // Optionally, update the list of created courses
             setCreatedCourses([...createdCourses, response.data.course]);
         } catch (error) {
             console.error('Error al clonar el curso:', error);

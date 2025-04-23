@@ -190,24 +190,6 @@ function CourseView() {
         setViewingStudents(viewingStudents => !viewingStudents);
     }
 
-    const handleCloneCourse = async () => {
-        try {
-            const response = await axios.post(`http://localhost:5000/api/courses/clone/${courseId}`, {
-                code: `${course.code}-clone`,
-                name: `${course.name} (Clone)`,
-                description: course.description,
-                startDate: course.startDate,
-                endDate: course.endDate,
-                teacher: course.teacher
-            });
-            alert('Curso clonado exitosamente!');
-            navigate(`/course/${response.data.course._id}`);
-        } catch (error) {
-            console.error('Error al clonar el curso:', error);
-            alert('Error al clonar el curso. Por favor, inténtelo de nuevo.');
-        }
-    };
-
     return (
         <div className="container my-5">
             {course ? (
@@ -245,9 +227,6 @@ function CourseView() {
                             }
                             <button className="btn btn-info mt-3 ms-3" onClick={handleViewStudents}>
                                 {viewingStudents ? "Ver Temas del Curso" : "Ver Lista de Estudiantes"}
-                            </button>
-                            <button className="btn btn-secondary mt-3 ms-3" onClick={handleCloneCourse}>
-                                Clonar Curso
                             </button>
                         </div>
                     </div>
