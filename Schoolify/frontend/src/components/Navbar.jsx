@@ -40,10 +40,15 @@ function Navbar() {
       setIsLoading(true);
       try {
         // Obtener resultados del endpoint correspondiente
-        const url = `http://localhost:5000/api/${searchType}/search/${searchQuery}`;
+        const url = `http://localhost:5000/${searchType}/search/${searchQuery}`;
         console.log('Search URL:', url);
         const response = await fetch(url);
         console.log('Search Response:', response);
+        if (!response.ok) {
+          console.error('Search failed:', response.status);
+          setSearchResults([]);
+          return;
+        }
         const data = await response.json();
         console.log('Search Data:', data);
         setSearchResults(data);
