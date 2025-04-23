@@ -40,10 +40,12 @@ function Navbar() {
       setIsLoading(true);
       try {
         // Obtener resultados del endpoint correspondiente
-        const response = await fetch(
-          `${process.env.REACT_APP_API_URL}/api/${searchType}/search/${searchQuery}`
-        );
+        const url = `${process.env.REACT_APP_API_URL}/api/${searchType}/search/${searchQuery}`;
+        console.log('Search URL:', url);
+        const response = await fetch(url);
+        console.log('Search Response:', response);
         const data = await response.json();
+        console.log('Search Data:', data);
         setSearchResults(data);
       } catch (error) {
         console.error('Error en la búsqueda:', error);
