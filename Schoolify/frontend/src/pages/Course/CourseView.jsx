@@ -10,6 +10,8 @@ function CourseView() {
     const [evaluations, setEvaluations] = useState([]);
     const [activeEvaluation, setActiveEvaluation] = useState(null);
     const [currentAnswers, setCurrentAnswers] = useState([]);
+    const [isEnrolled, setIsEnrolled] = useState(false);
+    const [viewingStudents, setViewingStudents] = useState(false);
     const { user } = useAuth();
 
     useEffect(() => {
@@ -17,6 +19,9 @@ function CourseView() {
             try {
                 const response = await axios.get(`http://localhost:5000/courses/${courseId}`);
                 setCourse(response.data);
+                if (response.data.studentList.includes(user.username)) {
+                    setIsEnrolled(true);
+                }
             } catch (error) {
                 console.error("Error fetching course details:", error);
             }
@@ -145,6 +150,45 @@ function CourseView() {
         }
     };
 
+    const handleEnroll = async (courseId) => {
+        try {
+            const response = await axios.post(`http://localhost:5000/api/enrollment/enroll`, {
+                courseID: courseId,
+                userID: user._id,
+            });
+
+            if (response.status == 200) {
+                setIsEnrolled(true);
+                updateUser(response.data.user); // Actualiza el usuario en el contexto
+            }
+            console.log("Enrollment response:", response.data);
+        } catch (error) {
+            console.error("Error enrolling in course:", error);
+        }
+    }
+
+    const handleUnenroll = async (courseId) => {
+        try {
+            const response = await axios.post(`http://localhost:5000/api/enrollment/unenroll`, {
+                courseID: courseId,
+                userID: user._id,
+            });
+
+            if (response.status == 200) {
+                setIsEnrolled(false);
+                updateUser(response.data.user); // Actualiza el usuario en el contexto
+            }
+            console.log("Unenrollment response:", response.data);
+            // Aquí puedes manejar la respuesta después de la desmatrícula
+        } catch (error) {
+            console.error("Error unenrolling from course:", error);
+        }
+    }
+
+    const handleViewStudents = () => {
+        setViewingStudents(viewingStudents => !viewingStudents);
+    }
+
     return (
         <div className="container my-5">
             {course ? (
@@ -168,14 +212,51 @@ function CourseView() {
                         <div>
                             <h1 className="display-4 fw-bold">{course.name}</h1>
                             <p className="text-muted fs-3">
-                                <strong>Profesor:</strong> {course.teacher}
+                                <strong>Profesor:</strong> <a href={`http://localhost:5173/users/${course.teacher}`}>{course.teacher}</a>
                             </p>
                             <p className="text-muted fs-4">
                                 <strong>Estado:</strong> {getStateLabel(course.state)}
                             </p>
-                            <button className="btn btn-primary mt-3">Matricularse</button>
+                            {course.teacher !== user.username &&
+                                (isEnrolled ? (
+                                    <button className="btn btn-danger mt-3" onClick={() => handleUnenroll(course._id)}>Desmatricularse</button>
+                                ) : (
+                                    <button className="btn btn-primary mt-3" onClick={() => handleEnroll(course._id)}>Matricularse</button>
+                                ))
+                            }
+                            <button className="btn btn-info mt-3 ms-3" onClick={handleViewStudents}>
+                                {viewingStudents ? "Ver Temas del Curso" : "Ver Lista de Estudiantes"}
+                            </button>
                         </div>
                     </div>
+
+                    {viewingStudents ? (
+                        <div className="card mt-4">
+                            <div className="card-body">
+                                <h5 className="card-title">Lista de Estudiantes</h5>
+                                <table className="table">
+                                    <thead>
+                                        <tr>
+                                            <th>#</th>
+                                            <th>Nombre de Usuario</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {course.studentList.map((student, index) => (
+                                            <tr key={student}>
+                                                <td>{index + 1}</td>
+                                                <td>
+                                                    <a href={`http://localhost:5173/users/${student}`} rel="noopener noreferrer">
+                                                        {student}
+                                                    </a>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    ) : (
 
                     <div className="card mt-4">
                         <div className="card-body">
@@ -210,6 +291,8 @@ function CourseView() {
                             </div>
                         </div>
                     </div>
+
+                    )}
 
                     {evaluations.length > 0 && (
                         <div className="card mt-4">
