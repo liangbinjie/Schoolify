@@ -36,6 +36,25 @@ function UserCourses({ userId }) {
         }
     };
 
+    const handleCloneCourse = async (course) => {
+        try {
+            const response = await axios.post(`http://localhost:5000/courses/clone/${course._id}`, {
+                code: `${course.code}-clone`,
+                name: `${course.name} (Clone)`,
+                description: course.description,
+                startDate: course.startDate,
+                endDate: course.endDate,
+                teacher: course.teacher
+            });
+            alert('Curso clonado exitosamente!');
+            // Optionally, update the list of created courses
+            setCreatedCourses([...createdCourses, response.data.course]);
+        } catch (error) {
+            console.error('Error al clonar el curso:', error);
+            alert('Error al clonar el curso. Por favor, inténtelo de nuevo.');
+        }
+    };
+
     return (
         <div className="container my-5">
             <h1 className="display-4 fw-bold text-center mb-4">Mis Cursos Creados</h1>
@@ -72,6 +91,9 @@ function UserCourses({ userId }) {
                                             Publicar
                                         </button>
                                     )}
+                                    <button className="btn btn-secondary mt-2" onClick={() => handleCloneCourse(course)}>
+                                        Clonar Curso
+                                    </button>
                                 </div>
                             </div>
                         </div>
