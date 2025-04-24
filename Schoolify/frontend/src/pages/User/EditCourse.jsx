@@ -1511,8 +1511,10 @@ function EvaluationsSection({ courseId }) {
 
 function StudentsSection({ courseId }) {
     const [students, setStudents] = useState([]);
+    const [averageScores, setAverageScores] = useState({});
 
     useEffect(() => {
+        // Obtener estudiantes del curso
         const fetchStudents = async () => {
             try {
                 const response = await axios.get(`http://localhost:5000/courses/${courseId}/students`);
@@ -1522,7 +1524,34 @@ function StudentsSection({ courseId }) {
             }
         };
 
+        // Obtener resultados de evaluaciones y calcular promedios
+        const fetchEvaluationResults = async () => {
+            try {
+                const response = await axios.get(`http://localhost:5000/api/evaluations/${courseId}/results`);
+                const results = response.data;
+
+                // Calcular promedios por estudiante
+                const scores = {};
+                results.forEach((result) => {
+                    const studentId = result.student._id;
+                    if (!scores[studentId]) scores[studentId] = [];
+                    scores[studentId].push(result.score);
+                });
+
+                const averages = {};
+                Object.keys(scores).forEach((studentId) => {
+                    const totalScore = scores[studentId].reduce((sum, score) => sum + score, 0);
+                    averages[studentId] = (totalScore / scores[studentId].length).toFixed(2); // Promedio con 2 decimales
+                });
+
+                setAverageScores(averages);
+            } catch (error) {
+                console.error("Error fetching evaluation results:", error);
+            }
+        };
+
         fetchStudents();
+        fetchEvaluationResults();
     }, [courseId]);
 
     return (
@@ -1536,6 +1565,7 @@ function StudentsSection({ courseId }) {
                             <th>Apellido</th>
                             <th>Nombre de Usuario</th>
                             <th>Correo Electrónico</th>
+                            <th>Nota Promedio</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -1545,6 +1575,7 @@ function StudentsSection({ courseId }) {
                                 <td>{student.lastName}</td>
                                 <td>{student.username}</td>
                                 <td>{student.email}</td>
+                                <td>{averageScores[student._id] || "N/A"}</td>
                             </tr>
                         ))}
                     </tbody>
