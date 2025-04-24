@@ -11,15 +11,37 @@ function CourseView() {
     const [filesBySubtopic, setFilesBySubtopic] = useState({});
     const [isEnrolled, setIsEnrolled] = useState(false);
     const [activeTab, setActiveTab] = useState("temas");
+    const [isLoading, setIsLoading] = useState({});
     const { user } = useAuth();
     const navigate = useNavigate();
+    
+    // Función para calcular tamaño de archivo en formato legible
+    const formatFileSize = (bytes) => {
+        if (bytes === 0) return '0 Bytes';
+        const k = 1024;
+        const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    };
+
+    // Función para determinar el ícono según el tipo de archivo
+    const getFileIcon = (contentType) => {
+        if (contentType?.includes('image')) return "bi bi-file-image";
+        if (contentType?.includes('pdf')) return "bi bi-file-pdf";
+        if (contentType?.includes('word') || contentType?.includes('document')) return "bi bi-file-word";
+        if (contentType?.includes('excel') || contentType?.includes('spreadsheet')) return "bi bi-file-excel";
+        if (contentType?.includes('powerpoint') || contentType?.includes('presentation')) return "bi bi-file-ppt";
+        if (contentType?.includes('zip') || contentType?.includes('compressed')) return "bi bi-file-zip";
+        if (contentType?.includes('text')) return "bi bi-file-text";
+        return "bi bi-file-earmark";
+    };
 
     useEffect(() => {
         const fetchCourse = async () => {
             try {
                 const response = await axios.get(`http://localhost:5000/courses/${courseId}`);
                 setCourse(response.data);
-                if (response.data.studentList.includes(user.username)) {
+                if (response.data.studentList && response.data.studentList.includes(user.username)) {
                     setIsEnrolled(true);
                 }
             } catch (error) {
@@ -38,70 +60,128 @@ function CourseView() {
 
         fetchCourse();
         fetchTabs();
-    }, [courseId, user.username]);
+    }, [courseId, user?.username]);
 
     const fetchFilesByTopic = async (topicId) => {
         try {
-            const response = await axios.get(`http://localhost:5000/api/files/list/topic/${courseId}/${topicId}`);
-            setFilesByTopic((prev) => ({
+            console.log(`Fetching files for topic: ${topicId} in course: ${courseId}`);
+            setIsLoading(prev => ({ ...prev, [`topic_${topicId}`]: true }));
+            
+            const response = await axios.get(
+                `http://localhost:5000/api/cassandra-files/list/topic/${courseId}/${topicId}`
+            );
+            
+            console.log("Files received for topic:", response.data);
+            setFilesByTopic(prev => ({
                 ...prev,
-                [topicId]: response.data,
+                [topicId]: response.data
             }));
         } catch (error) {
-            console.error("Error fetching files for topic:", error);
+            console.error(`Error fetching files for topic ${topicId}:`, error);
+            setFilesByTopic(prev => ({
+                ...prev,
+                [topicId]: []
+            }));
+        } finally {
+            setIsLoading(prev => ({ ...prev, [`topic_${topicId}`]: false }));
         }
     };
 
     const fetchFilesBySubtopic = async (topicId, subtopicId) => {
         try {
+            console.log(`Fetching files for subtopic: ${subtopicId} in topic: ${topicId} of course: ${courseId}`);
+            setIsLoading(prev => ({ ...prev, [`subtopic_${subtopicId}`]: true }));
+            
             const response = await axios.get(
-                `http://localhost:5000/api/files/list/subtopic/${courseId}/${topicId}/${subtopicId}`
+                `http://localhost:5000/api/cassandra-files/list/subtopic/${courseId}/${topicId}/${subtopicId}`
             );
-            setFilesBySubtopic((prev) => ({
+            
+            console.log("Files received for subtopic:", response.data);
+            setFilesBySubtopic(prev => ({
                 ...prev,
-                [subtopicId]: response.data,
+                [subtopicId]: response.data
             }));
         } catch (error) {
-            console.error("Error fetching files for subtopic:", error);
+            console.error(`Error fetching files for subtopic ${subtopicId}:`, error);
+            setFilesBySubtopic(prev => ({
+                ...prev,
+                [subtopicId]: []
+            }));
+        } finally {
+            setIsLoading(prev => ({ ...prev, [`subtopic_${subtopicId}`]: false }));
         }
     };
 
-    const downloadFile = async (fileId, filename) => {
+    const downloadFile = async (fileId, fileName) => {
         try {
-            const response = await axios.get(`http://localhost:5000/api/files/download/${fileId}`, {
-                responseType: "blob",
-            });
-            const url = window.URL.createObjectURL(new Blob([response.data]));
-            const link = document.createElement("a");
-            link.href = url;
-            link.setAttribute("download", filename);
+            console.log(`Downloading file: ${fileId}`);
+            
+            // Crear un enlace de descarga
+            const link = document.createElement('a');
+            link.href = `http://localhost:5000/api/cassandra-files/download/${fileId}`;
+            link.download = fileName || 'download';
             document.body.appendChild(link);
             link.click();
-            link.parentNode.removeChild(link);
+            document.body.removeChild(link);
         } catch (error) {
             console.error("Error downloading file:", error);
+            alert("Error al descargar el archivo. Por favor, inténtelo de nuevo.");
         }
     };
 
-    const renderFiles = (files) => (
-        <ul className="list-group mt-2">
-            {files.map((file) => (
-                <li key={file.file_id} className="list-group-item d-flex justify-content-between align-items-center">
-                    <span>{file.filename}</span>
-                    <button
-                        className="btn btn-sm btn-primary"
-                        onClick={() => downloadFile(file.file_id, file.filename)}
+    const renderFiles = (files, itemId, type) => {
+        // Si está cargando, mostrar indicador
+        if (isLoading[`${type}_${itemId}`]) {
+            return (
+                <div className="text-center my-3">
+                    <div className="spinner-border spinner-border-sm text-primary" role="status">
+                        <span className="visually-hidden">Cargando...</span>
+                    </div>
+                    <span className="ms-2">Cargando archivos...</span>
+                </div>
+            );
+        }
+        
+        // Si no hay archivos, mostrar mensaje
+        if (!files || files.length === 0) {
+            return (
+                <div className="alert alert-light text-center py-2">
+                    <i className="bi bi-info-circle me-2"></i>
+                    No hay archivos disponibles en esta sección.
+                </div>
+            );
+        }
+        
+        // Renderizar la lista de archivos
+        return (
+            <div className="list-group mt-2">
+                {files.map((file) => (
+                    <div 
+                        key={file.file_id} 
+                        className="list-group-item list-group-item-action d-flex justify-content-between align-items-center"
                     >
-                        Descargar
-                    </button>
-                </li>
-            ))}
-        </ul>
-    );
+                        <div>
+                            <i className={`${getFileIcon(file.content_type)} me-2 text-primary`}></i>
+                            <span>{file.filename}</span>
+                            {file.size && (
+                                <small className="text-muted ms-2">({formatFileSize(file.size)})</small>
+                            )}
+                        </div>
+                        <button
+                            className="btn btn-sm btn-outline-primary"
+                            onClick={() => downloadFile(file.file_id, file.filename)}
+                        >
+                            <i className="bi bi-download me-1"></i> Descargar
+                        </button>
+                    </div>
+                ))}
+            </div>
+        );
+    };
 
     const renderSubtabs = (subtabs, topicId) => (
         <div className="accordion mt-2" id={`subtabs-${topicId}`}>
-            {subtabs.map((subtab, index) => (
+            {subtabs.map((subtab) => (
                 <div className="accordion-item" key={subtab._id}>
                     <h2 className="accordion-header" id={`subtab-heading-${subtab._id}`}>
                         <button
@@ -124,7 +204,15 @@ function CourseView() {
                     >
                         <div className="accordion-body">
                             <p>{subtab.description}</p>
-                            {isEnrolled && filesBySubtopic[subtab._id] && renderFiles(filesBySubtopic[subtab._id])}
+                            {isEnrolled && (
+                                <div className="mt-3">
+                                    <h6 className="border-bottom pb-2">
+                                        <i className="bi bi-folder2-open me-2"></i>
+                                        Archivos del subtema
+                                    </h6>
+                                    {renderFiles(filesBySubtopic[subtab._id], subtab._id, 'subtopic')}
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -150,7 +238,10 @@ function CourseView() {
                                 }}
                             />
                         ) : (
-                            <p>No hay logo disponible.</p>
+                            <div className="bg-light rounded p-4 me-4 text-center" style={{width: "200px", height: "150px"}}>
+                                <i className="bi bi-image text-muted" style={{fontSize: "2rem"}}></i>
+                                <p className="mt-2 text-muted">Sin imagen</p>
+                            </div>
                         )}
                         <div>
                             <h1 className="display-4 fw-bold">{course.name}</h1>
@@ -159,7 +250,12 @@ function CourseView() {
                                 <a href={`http://localhost:5173/users/${course.teacher}`}>{course.teacher}</a>
                             </p>
                             <p className="text-muted fs-4">
-                                <strong>Estado:</strong> {course.state}
+                                <strong>Estado:</strong>{" "}
+                                <span className={`badge ${course.state === 'active' ? 'bg-success' : 'bg-secondary'}`}>
+                                    {course.state === 'active' ? 'Activo' : 
+                                     course.state === 'published' ? 'Publicado' : 
+                                     course.state === 'closed' ? 'Cerrado' : 'En edición'}
+                                </span>
                             </p>
                         </div>
                     </div>
@@ -170,7 +266,7 @@ function CourseView() {
                                 className={`nav-link ${activeTab === "temas" ? "active" : ""}`}
                                 onClick={() => setActiveTab("temas")}
                             >
-                                Temas del Curso
+                                <i className="bi bi-book me-1"></i> Temas del Curso
                             </button>
                         </li>
                     </ul>
@@ -178,43 +274,77 @@ function CourseView() {
                     {activeTab === "temas" && (
                         <div className="card mt-4">
                             <div className="card-body">
-                                <h5 className="card-title">Temas del Curso</h5>
-                                <div className="accordion" id="courseTabsAccordion">
-                                    {tabs.map((tab, index) => (
-                                        <div className="accordion-item" key={tab._id}>
-                                            <h2 className="accordion-header" id={`heading-${index}`}>
-                                                <button
-                                                    className="accordion-button"
-                                                    type="button"
-                                                    data-bs-toggle="collapse"
-                                                    data-bs-target={`#collapse-${index}`}
-                                                    aria-expanded="false"
-                                                    aria-controls={`collapse-${index}`}
-                                                    onClick={() => fetchFilesByTopic(tab._id)}
+                                <h5 className="card-title">
+                                    <i className="bi bi-list-check me-2"></i> 
+                                    Contenido del curso
+                                </h5>
+                                {tabs.length > 0 ? (
+                                    <div className="accordion" id="courseTabsAccordion">
+                                        {tabs.map((tab, index) => (
+                                            <div className="accordion-item" key={tab._id}>
+                                                <h2 className="accordion-header" id={`heading-${index}`}>
+                                                    <button
+                                                        className="accordion-button collapsed"
+                                                        type="button"
+                                                        data-bs-toggle="collapse"
+                                                        data-bs-target={`#collapse-${index}`}
+                                                        aria-expanded="false"
+                                                        aria-controls={`collapse-${index}`}
+                                                        onClick={() => fetchFilesByTopic(tab._id)}
+                                                    >
+                                                        {tab.title}
+                                                    </button>
+                                                </h2>
+                                                <div
+                                                    id={`collapse-${index}`}
+                                                    className="accordion-collapse collapse"
+                                                    aria-labelledby={`heading-${index}`}
+                                                    data-bs-parent="#courseTabsAccordion"
                                                 >
-                                                    {tab.title}
-                                                </button>
-                                            </h2>
-                                            <div
-                                                id={`collapse-${index}`}
-                                                className="accordion-collapse collapse"
-                                                aria-labelledby={`heading-${index}`}
-                                                data-bs-parent="#courseTabsAccordion"
-                                            >
-                                                <div className="accordion-body">
-                                                    {isEnrolled && filesByTopic[tab._id] && renderFiles(filesByTopic[tab._id])}
-                                                    {tab.subtabs && renderSubtabs(tab.subtabs, tab._id)}
+                                                    <div className="accordion-body">
+                                                        <p>{tab.description}</p>
+                                                        
+                                                        {isEnrolled && (
+                                                            <div className="mt-3">
+                                                                <h6 className="border-bottom pb-2">
+                                                                    <i className="bi bi-folder2-open me-2"></i>
+                                                                    Archivos del tema
+                                                                </h6>
+                                                                {renderFiles(filesByTopic[tab._id], tab._id, 'topic')}
+                                                            </div>
+                                                        )}
+                                                        
+                                                        {tab.subtabs && tab.subtabs.length > 0 && (
+                                                            <div className="mt-4">
+                                                                <h6 className="border-bottom pb-2">
+                                                                    <i className="bi bi-diagram-3 me-2"></i>
+                                                                    Subtemas
+                                                                </h6>
+                                                                {renderSubtabs(tab.subtabs, tab._id)}
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    ))}
-                                </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="alert alert-info text-center my-4">
+                                        <i className="bi bi-info-circle-fill me-2"></i>
+                                        Este curso aún no tiene temas disponibles
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}
                 </>
             ) : (
-                <p className="text-center">Cargando información del curso...</p>
+                <div className="text-center my-5">
+                    <div className="spinner-border text-primary" role="status">
+                        <span className="visually-hidden">Cargando...</span>
+                    </div>
+                    <p className="mt-2">Cargando información del curso...</p>
+                </div>
             )}
         </div>
     );
