@@ -1040,7 +1040,9 @@ function EvaluationsSection({ courseId }) {
                 createdBy: user._id
             });
 
-            setEvaluations([...evaluations, response.data.evaluation]);
+            // En lugar de response.data.evaluation, usar directamente response.data
+            setEvaluations([...evaluations, response.data]);
+            
             setNewEvaluation({
                 title: "",
                 description: "",
@@ -1212,7 +1214,51 @@ function EvaluationsSection({ courseId }) {
                     <div className="card-header">Nueva Evaluación</div>
                     <div className="card-body">
                         <form onSubmit={createEvaluation}>
-                            {/* Formulario existente... */}
+                            <div className="mb-3">
+                                <label className="form-label">Título</label>
+                                <input
+                                    type="text"
+                                    className="form-control"
+                                    name="title"
+                                    value={newEvaluation.title}
+                                    onChange={handleNewEvaluationChange}
+                                    required
+                                />
+                            </div>
+                            <div className="mb-3">
+                                <label className="form-label">Descripción</label>
+                                <textarea
+                                    className="form-control"
+                                    name="description"
+                                    value={newEvaluation.description}
+                                    onChange={handleNewEvaluationChange}
+                                ></textarea>
+                            </div>
+                            <div className="mb-3">
+                                <label className="form-label">Fecha de inicio</label>
+                                <input
+                                    type="datetime-local"
+                                    className="form-control"
+                                    name="startDate"
+                                    value={newEvaluation.startDate}
+                                    onChange={handleNewEvaluationChange}
+                                    required
+                                />
+                            </div>
+                            <div className="mb-3">
+                                <label className="form-label">Fecha de finalización</label>
+                                <input
+                                    type="datetime-local"
+                                    className="form-control"
+                                    name="endDate"
+                                    value={newEvaluation.endDate}
+                                    onChange={handleNewEvaluationChange}
+                                    required
+                                />
+                            </div>
+                            <button type="submit" className="btn btn-primary">
+                                Crear Evaluación
+                            </button>
                         </form>
                     </div>
                 </div>
