@@ -8,10 +8,12 @@ function CourseView() {
     const [course, setCourse] = useState(null);
     const [tabs, setTabs] = useState([]);
     const [evaluations, setEvaluations] = useState([]);
+    const [evaluationResults, setEvaluationResults] = useState([]);
     const [activeEvaluation, setActiveEvaluation] = useState(null);
     const [currentAnswers, setCurrentAnswers] = useState([]);
     const [isEnrolled, setIsEnrolled] = useState(false);
-    const [viewingStudents, setViewingStudents] = useState(false);
+    const [activeTab, setActiveTab] = useState("temas");
+    const [showEnrollPopup, setShowEnrollPopup] = useState(false); // Nuevo estado
     const { user } = useAuth();
     const navigate = useNavigate();
 
@@ -31,7 +33,6 @@ function CourseView() {
         const fetchTabs = async () => {
             try {
                 const response = await axios.get(`http://localhost:5000/api/tabs/courses/${courseId}/tabs`);
-                console.log("Tabs data:", response.data);
                 setTabs(response.data);
             } catch (error) {
                 console.error("Error fetching course tabs:", error);
@@ -51,26 +52,22 @@ function CourseView() {
             }
         };
 
+        const fetchEvaluationResults = async () => {
+            try {
+                const response = await axios.get(`http://localhost:5000/api/evaluations/${courseId}/results/${user._id}`);
+                setEvaluationResults(response.data);
+            } catch (error) {
+                console.error("Error fetching evaluation results:", error);
+            }
+        };
+
         fetchCourse();
         fetchTabs();
         fetchEvaluations();
-    }, [courseId]);
-
-    const renderDocuments = (documents) => {
-        if (!documents || documents.length === 0) {
-            return <p className="text-muted">No hay documentos disponibles.</p>;
+        if (isEnrolled) {
+            fetchEvaluationResults();
         }
-
-        return (
-            <ul className="list-group mt-2">
-                {documents.map((doc) => (
-                    <li key={doc._id} className="list-group-item">
-                        <p><strong>{doc.name}</strong></p>
-                    </li>
-                ))}
-            </ul>
-        );
-    };
+    }, [courseId, isEnrolled, user._id]);
 
     const renderSubtabs = (subtabs) => (
         <ul className="list-group mt-2">
@@ -92,65 +89,6 @@ function CourseView() {
         </ul>
     );
 
-    const startEvaluation = (evaluation) => {
-        setActiveEvaluation(evaluation);
-        setCurrentAnswers(Array(evaluation.questions.length).fill(null));
-    };
-
-    const handleAnswerSelection = (questionIndex, optionIndex) => {
-        const newAnswers = [...currentAnswers];
-        newAnswers[questionIndex] = optionIndex;
-        setCurrentAnswers(newAnswers);
-    };
-
-    const submitEvaluation = async () => {
-        if (currentAnswers.includes(null)) {
-            alert("Por favor responde todas las preguntas antes de enviar");
-            return;
-        }
-
-        try {
-            await axios.post(`http://localhost:5000/api/evaluations/${activeEvaluation._id}/submit`, {
-                studentId: user._id,
-                answers: currentAnswers
-            });
-            alert("Evaluación enviada correctamente");
-            setActiveEvaluation(null);
-            const fetchEvaluations = async () => {
-                try {
-                    const response = await axios.get(`http://localhost:5000/api/evaluations/${courseId}`);
-                    const now = new Date();
-                    const activeEvals = response.data.filter(
-                        evaluation => new Date(evaluation.startDate) <= now && new Date(evaluation.endDate) >= now
-                    );
-                    setEvaluations(activeEvals);
-                } catch (error) {
-                    console.error("Error fetching evaluations:", error);
-                }
-            };
-            fetchEvaluations();
-        } catch (error) {
-            console.error("Error submitting evaluation:", error);
-            alert("Error al enviar la evaluación");
-        }
-    };
-
-    // Mapeo de estados a etiquetas legibles
-    const getStateLabel = (state) => {
-        switch (state) {
-            case "active":
-                return "Activo";
-            case "inactive":
-                return "Inactivo";
-            case "in edition":
-                return "En Edición";
-            case "published":
-                return "Publicado";
-            default:
-                return "No especificado";
-        }
-    };
-
     const handleEnroll = async (courseId) => {
         try {
             const response = await axios.post(`http://localhost:5000/api/enrollment/enroll`, {
@@ -158,15 +96,14 @@ function CourseView() {
                 userID: user._id,
             });
 
-            if (response.status == 200) {
+            if (response.status === 200) {
                 setIsEnrolled(true);
-                updateUser(response.data.user); // Actualiza el usuario en el contexto
+                setShowEnrollPopup(true); // Mostrar el pop-up
             }
-            console.log("Enrollment response:", response.data);
         } catch (error) {
             console.error("Error enrolling in course:", error);
         }
-    }
+    };
 
     const handleUnenroll = async (courseId) => {
         try {
@@ -175,20 +112,13 @@ function CourseView() {
                 userID: user._id,
             });
 
-            if (response.status == 200) {
+            if (response.status === 200) {
                 setIsEnrolled(false);
-                updateUser(response.data.user); // Actualiza el usuario en el contexto
             }
-            console.log("Unenrollment response:", response.data);
-            // Aquí puedes manejar la respuesta después de la desmatrícula
         } catch (error) {
             console.error("Error unenrolling from course:", error);
         }
-    }
-
-    const handleViewStudents = () => {
-        setViewingStudents(viewingStudents => !viewingStudents);
-    }
+    };
 
     return (
         <div className="container my-5">
@@ -216,7 +146,7 @@ function CourseView() {
                                 <strong>Profesor:</strong> <a href={`http://localhost:5173/users/${course.teacher}`}>{course.teacher}</a>
                             </p>
                             <p className="text-muted fs-4">
-                                <strong>Estado:</strong> {getStateLabel(course.state)}
+                                <strong>Estado:</strong> {course.state}
                             </p>
                             {course.teacher !== user.username &&
                                 (isEnrolled ? (
@@ -225,13 +155,117 @@ function CourseView() {
                                     <button className="btn btn-primary mt-3" onClick={() => handleEnroll(course._id)}>Matricularse</button>
                                 ))
                             }
-                            <button className="btn btn-info mt-3 ms-3" onClick={handleViewStudents}>
-                                {viewingStudents ? "Ver Temas del Curso" : "Ver Lista de Estudiantes"}
-                            </button>
                         </div>
                     </div>
 
-                    {viewingStudents ? (
+                    {/* Navbar */}
+                    <ul className="nav nav-tabs">
+                        <li className="nav-item">
+                            <button
+                                className={`nav-link ${activeTab === "temas" ? "active" : ""}`}
+                                onClick={() => setActiveTab("temas")}
+                            >
+                                Temas del Curso
+                            </button>
+                        </li>
+                        <li className="nav-item">
+                            <button
+                                className={`nav-link ${activeTab === "estudiantes" ? "active" : ""}`}
+                                onClick={() => setActiveTab("estudiantes")}
+                            >
+                                Lista de Estudiantes
+                            </button>
+                        </li>
+                        {isEnrolled && (
+                            <>
+                                <li className="nav-item">
+                                    <button
+                                        className={`nav-link ${activeTab === "evaluaciones" ? "active" : ""}`}
+                                        onClick={() => setActiveTab("evaluaciones")}
+                                    >
+                                        Evaluaciones
+                                    </button>
+                                </li>
+                                <li className="nav-item">
+                                    <button
+                                        className={`nav-link ${activeTab === "resultados" ? "active" : ""}`}
+                                        onClick={() => setActiveTab("resultados")}
+                                    >
+                                        Resultados
+                                    </button>
+                                </li>
+                            </>
+                        )}
+                    </ul>
+
+                    {/* Modal de felicitación */}
+                    {showEnrollPopup && (
+                        <div className="modal show d-block" tabIndex="-1" role="dialog">
+                            <div className="modal-dialog" role="document">
+                                <div className="modal-content">
+                                    <div className="modal-header">
+                                        <h5 className="modal-title">¡Felicidades!</h5>
+                                        <button
+                                            type="button"
+                                            className="btn-close"
+                                            onClick={() => setShowEnrollPopup(false)}
+                                        ></button>
+                                    </div>
+                                    <div className="modal-body">
+                                        <p>Te has matriculado exitosamente en el curso <strong>{course.name}</strong>.</p>
+                                    </div>
+                                    <div className="modal-footer">
+                                        <button
+                                            type="button"
+                                            className="btn btn-primary"
+                                            onClick={() => setShowEnrollPopup(false)}
+                                        >
+                                            Cerrar
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Contenido del navbar */}
+                    {activeTab === "temas" && (
+                        <div className="card mt-4">
+                            <div className="card-body">
+                                <h5 className="card-title">Temas del Curso</h5>
+                                <div className="accordion" id="courseTabsAccordion">
+                                    {tabs.map((tab, index) => (
+                                        <div className="accordion-item" key={tab._id}>
+                                            <h2 className="accordion-header" id={`heading-${index}`}>
+                                                <button
+                                                    className="accordion-button"
+                                                    type="button"
+                                                    data-bs-toggle="collapse"
+                                                    data-bs-target={`#collapse-${index}`}
+                                                    aria-expanded="false"
+                                                    aria-controls={`collapse-${index}`}
+                                                >
+                                                    {tab.title}
+                                                </button>
+                                            </h2>
+                                            <div
+                                                id={`collapse-${index}`}
+                                                className="accordion-collapse collapse"
+                                                aria-labelledby={`heading-${index}`}
+                                                data-bs-parent="#courseTabsAccordion"
+                                            >
+                                                <div className="accordion-body">
+                                                    {tab.subtabs && renderSubtabs(tab.subtabs)}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === "estudiantes" && (
                         <div className="card mt-4">
                             <div className="card-body">
                                 <h5 className="card-title">Lista de Estudiantes</h5>
@@ -257,45 +291,9 @@ function CourseView() {
                                 </table>
                             </div>
                         </div>
-                    ) : (
-
-                    <div className="card mt-4">
-                        <div className="card-body">
-                            <h5 className="card-title">Temas del Curso</h5>
-                            <div className="accordion" id="courseTabsAccordion">
-                                {tabs.map((tab, index) => (
-                                    <div className="accordion-item" key={tab._id}>
-                                        <h2 className="accordion-header" id={`heading-${index}`}>
-                                            <button
-                                                className="accordion-button"
-                                                type="button"
-                                                data-bs-toggle="collapse"
-                                                data-bs-target={`#collapse-${index}`}
-                                                aria-expanded="false"
-                                                aria-controls={`collapse-${index}`}
-                                            >
-                                                {tab.title}
-                                            </button>
-                                        </h2>
-                                        <div
-                                            id={`collapse-${index}`}
-                                            className="accordion-collapse collapse"
-                                            aria-labelledby={`heading-${index}`}
-                                            data-bs-parent="#courseTabsAccordion"
-                                        >
-                                            <div className="accordion-body">
-                                                {tab.subtabs && renderSubtabs(tab.subtabs)}
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-
                     )}
 
-                    {evaluations.length > 0 && (
+                    {isEnrolled && activeTab === "evaluaciones" && (
                         <div className="card mt-4">
                             <div className="card-body">
                                 <h5 className="card-title">Evaluaciones Disponibles</h5>
@@ -310,7 +308,7 @@ function CourseView() {
                                             <small>Preguntas: {evaluation.questions.length}</small>
                                             <button 
                                                 className="btn btn-primary btn-sm mt-2"
-                                                onClick={() => startEvaluation(evaluation)}
+                                                onClick={() => setActiveEvaluation(evaluation)}
                                             >
                                                 Iniciar Evaluación
                                             </button>
@@ -321,51 +319,32 @@ function CourseView() {
                         </div>
                     )}
 
-                    {activeEvaluation && (
-                        <div className="modal d-block" style={{backgroundColor: "rgba(0,0,0,0.5)"}}>
-                            <div className="modal-dialog modal-lg">
-                                <div className="modal-content">
-                                    <div className="modal-header">
-                                        <h5 className="modal-title">{activeEvaluation.title}</h5>
-                                    </div>
-                                    <div className="modal-body">
-                                        {activeEvaluation.questions.map((question, qIndex) => (
-                                            <div key={qIndex} className="mb-4">
-                                                <h6 className="mb-3">{qIndex + 1}. {question.questionText}</h6>
-                                                <div className="list-group">
-                                                    {question.options.map((option, oIndex) => (
-                                                        <button
-                                                            key={oIndex}
-                                                            type="button"
-                                                            className={`list-group-item list-group-item-action ${
-                                                                currentAnswers[qIndex] === oIndex ? 'active' : ''
-                                                            }`}
-                                                            onClick={() => handleAnswerSelection(qIndex, oIndex)}
-                                                        >
-                                                            {option}
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                    <div className="modal-footer">
-                                        <button 
-                                            type="button" 
-                                            className="btn btn-secondary" 
-                                            onClick={() => setActiveEvaluation(null)}
-                                        >
-                                            Cancelar
-                                        </button>
-                                        <button 
-                                            type="button" 
-                                            className="btn btn-primary" 
-                                            onClick={submitEvaluation}
-                                        >
-                                            Enviar Respuestas
-                                        </button>
-                                    </div>
-                                </div>
+                    {isEnrolled && activeTab === "resultados" && (
+                        <div className="card mt-4">
+                            <div className="card-body">
+                                <h5 className="card-title">Resultados de Evaluaciones</h5>
+                                {evaluationResults.length > 0 ? (
+                                    <table className="table">
+                                        <thead>
+                                            <tr>
+                                                <th>Título</th>
+                                                <th>Calificación</th>
+                                                <th>Fecha de Envío</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {evaluationResults.map(result => (
+                                                <tr key={result._id}>
+                                                    <td>{result.evaluation.title}</td>
+                                                    <td>{result.score}%</td>
+                                                    <td>{new Date(result.submittedAt).toLocaleString()}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                ) : (
+                                    <p className="text-muted">No hay resultados disponibles.</p>
+                                )}
                             </div>
                         </div>
                     )}

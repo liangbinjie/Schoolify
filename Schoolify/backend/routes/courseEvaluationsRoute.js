@@ -62,4 +62,26 @@ evaluationRouter.post("/:evaluationId/submit", async (req, res) => {
   }
 });
 
+// Obtener resultados de evaluaciones por curso y estudiante
+evaluationRouter.get("/:courseId/results/:studentId", async (req, res) => {
+  const { courseId, studentId } = req.params;
+
+  try {
+    const results = await EvaluationResult.find({ student: studentId })
+      .populate({
+        path: "evaluation",
+        match: { course: courseId }, // Filtrar evaluaciones por curso
+        select: "title"
+      });
+
+    // Filtrar resultados que tengan evaluaciones válidas
+    const filteredResults = results.filter(result => result.evaluation !== null);
+
+    res.status(200).json(filteredResults);
+  } catch (err) {
+    console.error("Error fetching evaluation results:", err);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 export default evaluationRouter;
