@@ -41,6 +41,59 @@ evaluationRouter.get("/:courseId", async (req, res) => {
   }
 });
 
+// Actualizar una evaluación
+evaluationRouter.put("/:courseId/:evaluationId", async (req, res) => {
+  try {
+    const { courseId, evaluationId } = req.params;
+    const updateData = req.body;
+    
+    // Verificar que la evaluación exista y pertenezca al curso
+    const evaluation = await Evaluation.findOne({ 
+      _id: evaluationId, 
+      course: courseId 
+    });
+    
+    if (!evaluation) {
+      return res.status(404).json({ message: "Evaluation not found" });
+    }
+    
+    // Actualizar los campos proporcionados
+    Object.keys(updateData).forEach(key => {
+      evaluation[key] = updateData[key];
+    });
+    
+    const updatedEvaluation = await evaluation.save();
+    res.status(200).json(updatedEvaluation);
+  } catch (err) {
+    console.error("Error updating evaluation:", err);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// Eliminar una evaluación
+evaluationRouter.delete("/:courseId/:evaluationId", async (req, res) => {
+  try {
+    const { courseId, evaluationId } = req.params;
+    
+    // Verificar que la evaluación exista y pertenezca al curso
+    const evaluation = await Evaluation.findOne({ 
+      _id: evaluationId, 
+      course: courseId 
+    });
+    
+    if (!evaluation) {
+      return res.status(404).json({ message: "Evaluation not found" });
+    }
+    
+    await Evaluation.deleteOne({ _id: evaluationId });
+    
+    res.status(200).json({ message: "Evaluation deleted successfully" });
+  } catch (err) {
+    console.error("Error deleting evaluation:", err);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 // Enviar respuestas y calcular calificación
 evaluationRouter.post("/:evaluationId/submit", async (req, res) => {
   const { evaluationId } = req.params;
