@@ -42,11 +42,8 @@ function CourseView() {
         const fetchEvaluations = async () => {
             try {
                 const response = await axios.get(`http://localhost:5000/api/evaluations/${courseId}`);
-                const now = new Date();
-                const activeEvals = response.data.filter(
-                    evaluation => new Date(evaluation.startDate) <= now && new Date(evaluation.endDate) >= now
-                );
-                setEvaluations(activeEvals);
+                console.log("Evaluaciones obtenidas:", response.data);
+                setEvaluations(response.data); // Mostrar todas las evaluaciones sin filtrar
             } catch (error) {
                 console.error("Error fetching evaluations:", error);
             }
@@ -293,28 +290,40 @@ function CourseView() {
                         </div>
                     )}
 
-                    {isEnrolled && activeTab === "evaluaciones" && (
+                    {activeTab === "evaluaciones" && (
                         <div className="card mt-4">
                             <div className="card-body">
                                 <h5 className="card-title">Evaluaciones Disponibles</h5>
-                                <div className="list-group">
-                                    {evaluations.map(evaluation => (
-                                        <div key={evaluation._id} className="list-group-item list-group-item-action">
-                                            <div className="d-flex w-100 justify-content-between">
-                                                <h5 className="mb-1">{evaluation.title}</h5>
-                                                <small>Disponible hasta: {new Date(evaluation.endDate).toLocaleString()}</small>
+                                {evaluations.length > 0 ? (
+                                    evaluations.map(evaluation => (
+                                        <div
+                                            key={evaluation._id}
+                                            className="card mb-3"
+                                            style={{ border: "1px solid #ddd", borderRadius: "10px" }}
+                                        >
+                                            <div className="card-body">
+                                                <div className="d-flex justify-content-between align-items-center">
+                                                    <h5 className="card-title">{evaluation.title}</h5>
+                                                    <small className="text-muted">
+                                                        Disponible hasta: {new Date(evaluation.endDate).toLocaleString()}
+                                                    </small>
+                                                </div>
+                                                <p className="card-text">{evaluation.description}</p>
+                                                <p className="card-text">
+                                                    <small className="text-muted">Preguntas: {evaluation.questions.length}</small>
+                                                </p>
+                                                <button
+                                                    className="btn btn-primary"
+                                                    onClick={() => navigate(`/course/${courseId}/evaluations/${evaluation._id}`)}
+                                                >
+                                                    Realizar Evaluación
+                                                </button>
                                             </div>
-                                            <p className="mb-1">{evaluation.description}</p>
-                                            <small>Preguntas: {evaluation.questions.length}</small>
-                                            <button 
-                                                className="btn btn-primary btn-sm mt-2"
-                                                onClick={() => setActiveEvaluation(evaluation)}
-                                            >
-                                                Iniciar Evaluación
-                                            </button>
                                         </div>
-                                    ))}
-                                </div>
+                                    ))
+                                ) : (
+                                    <p className="text-muted">No hay evaluaciones disponibles.</p>
+                                )}
                             </div>
                         </div>
                     )}

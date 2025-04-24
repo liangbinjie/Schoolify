@@ -1,6 +1,7 @@
 import express from "express";
 import Evaluation from "../db/models/evaluationModel.js";
 import EvaluationResult from "../db/models/evaluationResultModel.js";
+import mongoose from "mongoose";
 
 const evaluationRouter = express.Router();
 
@@ -31,12 +32,32 @@ evaluationRouter.post("/:courseId", async (req, res) => {
 // Obtener evaluaciones de un curso
 evaluationRouter.get("/:courseId", async (req, res) => {
   const { courseId } = req.params;
+  console.log("Course ID:", courseId); // Verifica si courseId tiene un valor válido
 
   try {
-    const evaluations = await Evaluation.find({ course: courseId });
-    res.status(200).json(evaluations);
+      const evaluations = await Evaluation.find({ course: courseId });
+      if (!evaluations || evaluations.length === 0) {
+          return res.status(404).json({ message: "No evaluations found for this course" });
+      }
+      res.status(200).json(evaluations);
   } catch (err) {
-    console.error("Error fetching evaluations:", err);
+      console.error("Error fetching evaluations:", err);
+      res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// Obtener una evaluación específica
+evaluationRouter.get("/:courseId/evaluation/:evaluationId", async (req, res) => {
+  const { courseId, evaluationId } = req.params;
+
+  try {
+    const evaluation = await Evaluation.findOne({ _id: evaluationId, course: courseId });
+    if (!evaluation) {
+      return res.status(404).json({ message: "Evaluation not found" });
+    }
+    res.status(200).json(evaluation);
+  } catch (err) {
+    console.error("Error fetching evaluation:", err);
     res.status(500).json({ message: "Internal server error" });
   }
 });
@@ -100,40 +121,60 @@ evaluationRouter.post("/:evaluationId/submit", async (req, res) => {
   const { studentId, answers } = req.body;
 
   if (!studentId || !answers) {
-    return res.status(400).json({ message: "Please provide student ID and answers" });
+      return res.status(400).json({ message: "Please provide student ID and answers" });
+  }
+
+  // Validar que studentId sea un ObjectId válido
+  if (!mongoose.Types.ObjectId.isValid(studentId)) {
+      return res.status(400).json({ message: "Invalid student ID format" });
   }
 
   try {
-    const evaluation = await Evaluation.findById(evaluationId);
-    if (!evaluation) {
-      return res.status(404).json({ message: "Evaluation not found" });
-    }
-
-    // Calcular la calificación
-    const totalQuestions = evaluation.questions.length;
-    let correctAnswers = 0;
-
-    evaluation.questions.forEach((question, index) => {
-      if (answers[index] === question.correctOption) {
-        correctAnswers++;
+      const evaluation = await Evaluation.findById(evaluationId);
+      if (!evaluation) {
+          return res.status(404).json({ message: "Evaluation not found" });
       }
-    });
 
-    const score = (correctAnswers / totalQuestions) * 100;
+      if (!evaluation.questions || evaluation.questions.length === 0) {
+          return res.status(400).json({ message: "Evaluation has no questions" });
+      }
 
-    // Guardar el resultado
-    const result = new EvaluationResult({
-      evaluation: evaluationId,
-      student: studentId,
-      answers,
-      score
-    });
+      // Validar formato de respuestas
+      if (!Array.isArray(answers) || answers.length !== evaluation.questions.length) {
+          return res.status(400).json({ message: "Invalid answers format" });
+      }
 
-    await result.save();
-    res.status(201).json({ message: "Evaluation submitted successfully", score });
+      // Verificar si ya existe un resultado
+      const existingResult = await EvaluationResult.findOne({ evaluation: evaluationId, student: studentId });
+      if (existingResult) {
+          return res.status(400).json({ message: "Evaluation already submitted" });
+      }
+
+      // Calcular la calificación
+      const totalQuestions = evaluation.questions.length;
+      let correctAnswers = 0;
+
+      evaluation.questions.forEach((question, index) => {
+          if (answers[index] === question.correctOption) {
+              correctAnswers++;
+          }
+      });
+
+      const score = (correctAnswers / totalQuestions) * 100;
+
+      // Guardar el resultado
+      const result = new EvaluationResult({
+          evaluation: evaluationId,
+          student: studentId,
+          answers,
+          score,
+      });
+
+      await result.save();
+      res.status(201).json({ message: "Evaluation submitted successfully", score });
   } catch (err) {
-    console.error("Error submitting evaluation:", err);
-    res.status(500).json({ message: "Internal server error" });
+      console.error("Error submitting evaluation:", err);
+      res.status(500).json({ message: "Internal server error" });
   }
 });
 
@@ -159,4 +200,18 @@ evaluationRouter.get("/:courseId/results/:studentId", async (req, res) => {
   }
 });
 
+evaluationRouter.get("/:courseId/evaluation/:evaluationId", async (req, res) => {
+  const { courseId, evaluationId } = req.params;
+
+  try {
+      const evaluation = await Evaluation.findOne({ _id: evaluationId, course: courseId });
+      if (!evaluation) {
+          return res.status(404).json({ message: "Evaluation not found" });
+      }
+      res.status(200).json(evaluation);
+  } catch (err) {
+      console.error("Error fetching evaluation:", err);
+      res.status(500).json({ message: "Internal server error" });
+  }
+});
 export default evaluationRouter;

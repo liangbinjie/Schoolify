@@ -15,13 +15,13 @@ import Messages from "./pages/User/Messages.jsx";
 import UserCourses from "./pages/User/UserCourses.jsx";
 import EditCourse from "./pages/User/EditCourse.jsx";
 import EnrolledCourses from "./pages/Course/EnrolledCourses.jsx";
+import CourseEvaluation from "./pages/Course/CourseEvaluation.jsx";
 import { AuthRoute, NotAuthRoute } from "./context/AuthRoute.jsx";
 import { useAuth } from "./context/AuthProvider";
 import { ThemeProvider } from './context/ThemeProvider';
 
 function App() {
     const { user } = useAuth(); // Obtén el usuario autenticado
-
     return (
         <ThemeProvider>
             <Navbar />
@@ -48,6 +48,7 @@ function App() {
                         <Route path="/cursos-creados" element={<Navigate to="/login" />} />
                     )}
                     <Route path="/edit-course/:courseId" element={<EditCourse />} />
+                    <Route path="/course/:courseId/evaluations/:evaluationId" element={<CourseEvaluation />} />
                 </Route>
             </Routes>
         </ThemeProvider>
