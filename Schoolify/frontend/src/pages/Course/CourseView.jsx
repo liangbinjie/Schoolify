@@ -11,6 +11,12 @@ function CourseView() {
     const [filesBySubtopic, setFilesBySubtopic] = useState({});
     const [isEnrolled, setIsEnrolled] = useState(false);
     const [activeTab, setActiveTab] = useState("temas");
+    const [evaluations, setEvaluations] = useState([]);
+    const [selectedEvaluation, setSelectedEvaluation] = useState(null);
+    const [userAnswers, setUserAnswers] = useState([]);
+    const [evaluationResult, setEvaluationResult] = useState(null);
+    const [evaluationInProgress, setEvaluationInProgress] = useState(false);
+    const [studentResults, setStudentResults] = useState([]);
     const [isLoading, setIsLoading] = useState({});
     const { user } = useAuth();
     const navigate = useNavigate();
@@ -58,9 +64,32 @@ function CourseView() {
             }
         };
 
+        const fetchEvaluations = async () => {
+            if (courseId && user?.username) {
+                try {
+                    // Cambiamos la ruta para que coincida con la estructura del backend
+                    const response = await axios.get(`http://localhost:5000/api/evaluations/${courseId}`);
+                    setEvaluations(response.data);
+                    
+                    // También ajustamos esta ruta
+                    if (isEnrolled) {
+                        const resultsResponse = await axios.get(
+                            `http://localhost:5000/api/evaluations/${courseId}/results/${user._id}`
+                        );
+                        setStudentResults(resultsResponse.data);
+                    }
+                } catch (error) {
+                    console.error("Error fetching evaluations:", error);
+                }
+            }
+        };
+
         fetchCourse();
         fetchTabs();
-    }, [courseId, user?.username]);
+        if (isEnrolled) {
+            fetchEvaluations();
+        }
+    }, [courseId, user?.username, isEnrolled, user?._id]);
 
     const fetchFilesByTopic = async (topicId) => {
         try {
@@ -220,6 +249,200 @@ function CourseView() {
         </div>
     );
 
+    const startEvaluation = (evaluation) => {
+        setSelectedEvaluation(evaluation);
+        setUserAnswers(new Array(evaluation.questions.length).fill(null));
+        setEvaluationInProgress(true);
+        setEvaluationResult(null);
+    };
+
+    const handleAnswerChange = (questionIndex, optionIndex) => {
+        const newAnswers = [...userAnswers];
+        newAnswers[questionIndex] = optionIndex;
+        setUserAnswers(newAnswers);
+    };
+
+    const submitEvaluation = async () => {
+        try {
+            // Verificar que todas las preguntas estén respondidas
+            if (userAnswers.includes(null)) {
+                alert("Por favor responde todas las preguntas antes de enviar.");
+                return;
+            }
+
+            // Actualizar la ruta aquí también
+            const response = await axios.post(
+                `http://localhost:5000/api/evaluations/${selectedEvaluation._id}/submit`,
+                {
+                    studentId: user._id,
+                    answers: userAnswers
+                }
+            );
+
+            setEvaluationResult(response.data);
+            setEvaluationInProgress(false);
+            
+            // Actualizar la ruta aquí también
+            const resultsResponse = await axios.get(
+                `http://localhost:5000/api/evaluations/${courseId}/results/${user._id}`
+            );
+            setStudentResults(resultsResponse.data);
+        } catch (error) {
+            console.error("Error submitting evaluation:", error);
+            if (error.response && error.response.data && error.response.data.message) {
+                alert(`Error: ${error.response.data.message}`);
+            } else {
+                alert("Error al enviar la evaluación. Intenta de nuevo más tarde.");
+            }
+        }
+    };
+
+    const resetEvaluation = () => {
+        setSelectedEvaluation(null);
+        setUserAnswers([]);
+        setEvaluationResult(null);
+        setEvaluationInProgress(false);
+    };
+
+    // Componente para mostrar la lista de evaluaciones
+    const EvaluationsList = () => (
+        <div className="mt-4">
+            <h4 className="mb-3">Evaluaciones disponibles</h4>
+            {evaluations.length > 0 ? (
+                <div className="list-group">
+                    {evaluations.map((evaluation) => {
+                        // Verificar si el estudiante ya realizó esta evaluación
+                        const hasCompleted = studentResults.some(
+                            r => r.evaluation && r.evaluation._id === evaluation._id
+                        );
+                        
+                        // Encontrar el resultado si existe
+                        const result = studentResults.find(
+                            r => r.evaluation && r.evaluation._id === evaluation._id
+                        );
+                        
+                        return (
+                            <div key={evaluation._id} className="list-group-item list-group-item-action">
+                                <div className="d-flex w-100 justify-content-between align-items-center">
+                                    <div>
+                                        <h5 className="mb-1">{evaluation.title}</h5>
+                                        <p className="mb-1">{evaluation.description}</p>
+                                        <small>
+                                            Fecha de inicio: {new Date(evaluation.startDate).toLocaleDateString()} | 
+                                            Fecha de cierre: {new Date(evaluation.endDate).toLocaleDateString()}
+                                        </small>
+                                        {hasCompleted && (
+                                            <div className="mt-1">
+                                                <span className="badge bg-success me-2">Completada</span>
+                                                <span className="badge bg-primary">Puntaje: {result.score.toFixed(1)}</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div>
+                                        {!hasCompleted ? (
+                                            <button 
+                                                className="btn btn-primary"
+                                                onClick={() => startEvaluation(evaluation)}
+                                            >
+                                                Realizar evaluación
+                                            </button>
+                                        ) : (
+                                            <button 
+                                                className="btn btn-outline-secondary"
+                                                disabled
+                                            >
+                                                Ya completada
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            ) : (
+                <div className="alert alert-info">
+                    No hay evaluaciones disponibles en este curso.
+                </div>
+            )}
+        </div>
+    );
+
+    // Componente para tomar la evaluación
+    const TakeEvaluation = () => (
+        <div className="mt-4">
+            <div className="d-flex justify-content-between align-items-center mb-4">
+                <h4>{selectedEvaluation.title}</h4>
+                <button 
+                    className="btn btn-outline-secondary"
+                    onClick={resetEvaluation}
+                >
+                    Volver a la lista
+                </button>
+            </div>
+            
+            <p className="mb-4">{selectedEvaluation.description}</p>
+            
+            <form>
+                {selectedEvaluation.questions.map((question, qIndex) => (
+                    <div key={qIndex} className="card mb-4">
+                        <div className="card-header bg-light">
+                            <strong>Pregunta {qIndex + 1}:</strong> {question.questionText}
+                        </div>
+                        <div className="card-body">
+                            <div className="list-group">
+                                {question.options.map((option, oIndex) => (
+                                    <label key={oIndex} className="list-group-item">
+                                        <input
+                                            type="radio"
+                                            name={`question-${qIndex}`}
+                                            value={oIndex}
+                                            checked={userAnswers[qIndex] === oIndex}
+                                            onChange={() => handleAnswerChange(qIndex, oIndex)}
+                                            className="me-2"
+                                        />
+                                        {option}
+                                    </label>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+                ))}
+                
+                <div className="d-grid gap-2 d-md-flex justify-content-md-end">
+                    <button 
+                        type="button" 
+                        className="btn btn-primary"
+                        onClick={submitEvaluation}
+                    >
+                        Enviar evaluación
+                    </button>
+                </div>
+            </form>
+        </div>
+    );
+
+    // Componente para mostrar el resultado
+    const EvaluationResults = () => (
+        <div className="mt-4">
+            <div className="alert alert-success text-center">
+                <h4 className="alert-heading">¡Evaluación completada!</h4>
+                <p className="display-4 my-4">{evaluationResult.score.toFixed(1)} puntos</p>
+                <hr />
+                <p className="mb-0">Has completado con éxito la evaluación "{selectedEvaluation.title}".</p>
+            </div>
+            
+            <div className="d-flex justify-content-center mt-4">
+                <button 
+                    className="btn btn-primary"
+                    onClick={resetEvaluation}
+                >
+                    Volver a la lista de evaluaciones
+                </button>
+            </div>
+        </div>
+    );
+
     return (
         <div className="container my-5">
             {course ? (
@@ -269,6 +492,16 @@ function CourseView() {
                                 <i className="bi bi-book me-1"></i> Temas del Curso
                             </button>
                         </li>
+                        {isEnrolled && (
+                            <li className="nav-item">
+                                <button
+                                    className={`nav-link ${activeTab === "evaluaciones" ? "active" : ""}`}
+                                    onClick={() => setActiveTab("evaluaciones")}
+                                >
+                                    <i className="bi bi-clipboard-check me-1"></i> Evaluaciones
+                                </button>
+                            </li>
+                        )}
                     </ul>
 
                     {activeTab === "temas" && (
@@ -304,6 +537,7 @@ function CourseView() {
                                                     <div className="accordion-body">
                                                         <p>{tab.description}</p>
                                                         
+
                                                         {isEnrolled && (
                                                             <div className="mt-3">
                                                                 <h6 className="border-bottom pb-2">
@@ -334,6 +568,16 @@ function CourseView() {
                                         Este curso aún no tiene temas disponibles
                                     </div>
                                 )}
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === "evaluaciones" && isEnrolled && (
+                        <div className="card mt-4">
+                            <div className="card-body">
+                                {!selectedEvaluation && <EvaluationsList />}
+                                {selectedEvaluation && evaluationInProgress && <TakeEvaluation />}
+                                {selectedEvaluation && !evaluationInProgress && evaluationResult && <EvaluationResults />}
                             </div>
                         </div>
                     )}
