@@ -1,19 +1,16 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
-import { useAuth } from "../../context/AuthProvider"; // Assuming you have an AuthContext
+import { useAuth } from "../../context/AuthProvider";
 
 function CourseView() {
     const { id: courseId } = useParams();
     const [course, setCourse] = useState(null);
     const [tabs, setTabs] = useState([]);
-    const [evaluations, setEvaluations] = useState([]);
-    const [evaluationResults, setEvaluationResults] = useState([]);
-    const [activeEvaluation, setActiveEvaluation] = useState(null);
-    const [currentAnswers, setCurrentAnswers] = useState([]);
+    const [filesByTopic, setFilesByTopic] = useState({});
+    const [filesBySubtopic, setFilesBySubtopic] = useState({});
     const [isEnrolled, setIsEnrolled] = useState(false);
     const [activeTab, setActiveTab] = useState("temas");
-    const [showEnrollPopup, setShowEnrollPopup] = useState(false); // Nuevo estado
     const { user } = useAuth();
     const navigate = useNavigate();
 
@@ -39,83 +36,101 @@ function CourseView() {
             }
         };
 
-        const fetchEvaluations = async () => {
-            try {
-                const response = await axios.get(`http://localhost:5000/api/evaluations/${courseId}`);
-                console.log("Evaluaciones obtenidas:", response.data);
-                setEvaluations(response.data); // Mostrar todas las evaluaciones sin filtrar
-            } catch (error) {
-                console.error("Error fetching evaluations:", error);
-            }
-        };
-
-        const fetchEvaluationResults = async () => {
-            try {
-                const response = await axios.get(`http://localhost:5000/api/evaluations/${courseId}/results/${user._id}`);
-                setEvaluationResults(response.data);
-            } catch (error) {
-                console.error("Error fetching evaluation results:", error);
-            }
-        };
-
         fetchCourse();
         fetchTabs();
-        fetchEvaluations();
-        if (isEnrolled) {
-            fetchEvaluationResults();
-        }
-    }, [courseId, isEnrolled, user._id]);
+    }, [courseId, user.username]);
 
-    const renderSubtabs = (subtabs) => (
+    const fetchFilesByTopic = async (topicId) => {
+        try {
+            const response = await axios.get(`http://localhost:5000/api/files/list/topic/${courseId}/${topicId}`);
+            setFilesByTopic((prev) => ({
+                ...prev,
+                [topicId]: response.data,
+            }));
+        } catch (error) {
+            console.error("Error fetching files for topic:", error);
+        }
+    };
+
+    const fetchFilesBySubtopic = async (topicId, subtopicId) => {
+        try {
+            const response = await axios.get(
+                `http://localhost:5000/api/files/list/subtopic/${courseId}/${topicId}/${subtopicId}`
+            );
+            setFilesBySubtopic((prev) => ({
+                ...prev,
+                [subtopicId]: response.data,
+            }));
+        } catch (error) {
+            console.error("Error fetching files for subtopic:", error);
+        }
+    };
+
+    const downloadFile = async (fileId, filename) => {
+        try {
+            const response = await axios.get(`http://localhost:5000/api/files/download/${fileId}`, {
+                responseType: "blob",
+            });
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement("a");
+            link.href = url;
+            link.setAttribute("download", filename);
+            document.body.appendChild(link);
+            link.click();
+            link.parentNode.removeChild(link);
+        } catch (error) {
+            console.error("Error downloading file:", error);
+        }
+    };
+
+    const renderFiles = (files) => (
         <ul className="list-group mt-2">
-            {subtabs.map((subtab) => (
-                <li key={subtab._id} className="list-group-item">
-                    <p><strong>{subtab.title}</strong></p>
-                    {subtab.contents && subtab.contents.length > 0 && (
-                        <ul className="list-group mt-2">
-                            {subtab.contents.map((doc) => (
-                                <li key={doc._id} className="list-group-item">
-                                    <p>{doc.name}</p>
-                                </li>
-                            ))}
-                        </ul>
-                    )}
-                    {subtab.subtabs && renderSubtabs(subtab.subtabs)}
+            {files.map((file) => (
+                <li key={file.file_id} className="list-group-item d-flex justify-content-between align-items-center">
+                    <span>{file.filename}</span>
+                    <button
+                        className="btn btn-sm btn-primary"
+                        onClick={() => downloadFile(file.file_id, file.filename)}
+                    >
+                        Descargar
+                    </button>
                 </li>
             ))}
         </ul>
     );
 
-    const handleEnroll = async (courseId) => {
-        try {
-            const response = await axios.post(`http://localhost:5000/api/enrollment/enroll`, {
-                courseID: courseId,
-                userID: user._id,
-            });
-
-            if (response.status === 200) {
-                setIsEnrolled(true);
-                setShowEnrollPopup(true); // Mostrar el pop-up
-            }
-        } catch (error) {
-            console.error("Error enrolling in course:", error);
-        }
-    };
-
-    const handleUnenroll = async (courseId) => {
-        try {
-            const response = await axios.post(`http://localhost:5000/api/enrollment/unenroll`, {
-                courseID: courseId,
-                userID: user._id,
-            });
-
-            if (response.status === 200) {
-                setIsEnrolled(false);
-            }
-        } catch (error) {
-            console.error("Error unenrolling from course:", error);
-        }
-    };
+    const renderSubtabs = (subtabs, topicId) => (
+        <div className="accordion mt-2" id={`subtabs-${topicId}`}>
+            {subtabs.map((subtab, index) => (
+                <div className="accordion-item" key={subtab._id}>
+                    <h2 className="accordion-header" id={`subtab-heading-${subtab._id}`}>
+                        <button
+                            className="accordion-button collapsed"
+                            type="button"
+                            data-bs-toggle="collapse"
+                            data-bs-target={`#subtab-collapse-${subtab._id}`}
+                            aria-expanded="false"
+                            aria-controls={`subtab-collapse-${subtab._id}`}
+                            onClick={() => fetchFilesBySubtopic(topicId, subtab._id)}
+                        >
+                            {subtab.title}
+                        </button>
+                    </h2>
+                    <div
+                        id={`subtab-collapse-${subtab._id}`}
+                        className="accordion-collapse collapse"
+                        aria-labelledby={`subtab-heading-${subtab._id}`}
+                        data-bs-parent={`#subtabs-${topicId}`}
+                    >
+                        <div className="accordion-body">
+                            <p>{subtab.description}</p>
+                            {isEnrolled && filesBySubtopic[subtab._id] && renderFiles(filesBySubtopic[subtab._id])}
+                        </div>
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
 
     return (
         <div className="container my-5">
@@ -140,22 +155,15 @@ function CourseView() {
                         <div>
                             <h1 className="display-4 fw-bold">{course.name}</h1>
                             <p className="text-muted fs-3">
-                                <strong>Profesor:</strong> <a href={`http://localhost:5173/users/${course.teacher}`}>{course.teacher}</a>
+                                <strong>Profesor:</strong>{" "}
+                                <a href={`http://localhost:5173/users/${course.teacher}`}>{course.teacher}</a>
                             </p>
                             <p className="text-muted fs-4">
                                 <strong>Estado:</strong> {course.state}
                             </p>
-                            {course.teacher !== user.username &&
-                                (isEnrolled ? (
-                                    <button className="btn btn-danger mt-3" onClick={() => handleUnenroll(course._id)}>Desmatricularse</button>
-                                ) : (
-                                    <button className="btn btn-primary mt-3" onClick={() => handleEnroll(course._id)}>Matricularse</button>
-                                ))
-                            }
                         </div>
                     </div>
 
-                    {/* Navbar */}
                     <ul className="nav nav-tabs">
                         <li className="nav-item">
                             <button
@@ -165,67 +173,8 @@ function CourseView() {
                                 Temas del Curso
                             </button>
                         </li>
-                        <li className="nav-item">
-                            <button
-                                className={`nav-link ${activeTab === "estudiantes" ? "active" : ""}`}
-                                onClick={() => setActiveTab("estudiantes")}
-                            >
-                                Lista de Estudiantes
-                            </button>
-                        </li>
-                        {isEnrolled && (
-                            <>
-                                <li className="nav-item">
-                                    <button
-                                        className={`nav-link ${activeTab === "evaluaciones" ? "active" : ""}`}
-                                        onClick={() => setActiveTab("evaluaciones")}
-                                    >
-                                        Evaluaciones
-                                    </button>
-                                </li>
-                                <li className="nav-item">
-                                    <button
-                                        className={`nav-link ${activeTab === "resultados" ? "active" : ""}`}
-                                        onClick={() => setActiveTab("resultados")}
-                                    >
-                                        Resultados
-                                    </button>
-                                </li>
-                            </>
-                        )}
                     </ul>
 
-                    {/* Modal de felicitación */}
-                    {showEnrollPopup && (
-                        <div className="modal show d-block" tabIndex="-1" role="dialog">
-                            <div className="modal-dialog" role="document">
-                                <div className="modal-content">
-                                    <div className="modal-header">
-                                        <h5 className="modal-title">¡Felicidades!</h5>
-                                        <button
-                                            type="button"
-                                            className="btn-close"
-                                            onClick={() => setShowEnrollPopup(false)}
-                                        ></button>
-                                    </div>
-                                    <div className="modal-body">
-                                        <p>Te has matriculado exitosamente en el curso <strong>{course.name}</strong>.</p>
-                                    </div>
-                                    <div className="modal-footer">
-                                        <button
-                                            type="button"
-                                            className="btn btn-primary"
-                                            onClick={() => setShowEnrollPopup(false)}
-                                        >
-                                            Cerrar
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Contenido del navbar */}
                     {activeTab === "temas" && (
                         <div className="card mt-4">
                             <div className="card-body">
@@ -241,6 +190,7 @@ function CourseView() {
                                                     data-bs-target={`#collapse-${index}`}
                                                     aria-expanded="false"
                                                     aria-controls={`collapse-${index}`}
+                                                    onClick={() => fetchFilesByTopic(tab._id)}
                                                 >
                                                     {tab.title}
                                                 </button>
@@ -252,108 +202,13 @@ function CourseView() {
                                                 data-bs-parent="#courseTabsAccordion"
                                             >
                                                 <div className="accordion-body">
-                                                    {tab.subtabs && renderSubtabs(tab.subtabs)}
+                                                    {isEnrolled && filesByTopic[tab._id] && renderFiles(filesByTopic[tab._id])}
+                                                    {tab.subtabs && renderSubtabs(tab.subtabs, tab._id)}
                                                 </div>
                                             </div>
                                         </div>
                                     ))}
                                 </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {activeTab === "estudiantes" && (
-                        <div className="card mt-4">
-                            <div className="card-body">
-                                <h5 className="card-title">Lista de Estudiantes</h5>
-                                <table className="table">
-                                    <thead>
-                                        <tr>
-                                            <th>#</th>
-                                            <th>Nombre de Usuario</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {course.studentList.map((student, index) => (
-                                            <tr key={student}>
-                                                <td>{index + 1}</td>
-                                                <td>
-                                                    <a href={`http://localhost:5173/users/${student}`} rel="noopener noreferrer">
-                                                        {student}
-                                                    </a>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    )}
-
-                    {activeTab === "evaluaciones" && (
-                        <div className="card mt-4">
-                            <div className="card-body">
-                                <h5 className="card-title">Evaluaciones Disponibles</h5>
-                                {evaluations.length > 0 ? (
-                                    evaluations.map(evaluation => (
-                                        <div
-                                            key={evaluation._id}
-                                            className="card mb-3"
-                                            style={{ border: "1px solid #ddd", borderRadius: "10px" }}
-                                        >
-                                            <div className="card-body">
-                                                <div className="d-flex justify-content-between align-items-center">
-                                                    <h5 className="card-title">{evaluation.title}</h5>
-                                                    <small className="text-muted">
-                                                        Disponible hasta: {new Date(evaluation.endDate).toLocaleString()}
-                                                    </small>
-                                                </div>
-                                                <p className="card-text">{evaluation.description}</p>
-                                                <p className="card-text">
-                                                    <small className="text-muted">Preguntas: {evaluation.questions.length}</small>
-                                                </p>
-                                                <button
-                                                    className="btn btn-primary"
-                                                    onClick={() => navigate(`/course/${courseId}/evaluations/${evaluation._id}`)}
-                                                >
-                                                    Realizar Evaluación
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ))
-                                ) : (
-                                    <p className="text-muted">No hay evaluaciones disponibles.</p>
-                                )}
-                            </div>
-                        </div>
-                    )}
-
-                    {isEnrolled && activeTab === "resultados" && (
-                        <div className="card mt-4">
-                            <div className="card-body">
-                                <h5 className="card-title">Resultados de Evaluaciones</h5>
-                                {evaluationResults.length > 0 ? (
-                                    <table className="table">
-                                        <thead>
-                                            <tr>
-                                                <th>Título</th>
-                                                <th>Calificación</th>
-                                                <th>Fecha de Envío</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {evaluationResults.map(result => (
-                                                <tr key={result._id}>
-                                                    <td>{result.evaluation.title}</td>
-                                                    <td>{result.score}%</td>
-                                                    <td>{new Date(result.submittedAt).toLocaleString()}</td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                ) : (
-                                    <p className="text-muted">No hay resultados disponibles.</p>
-                                )}
                             </div>
                         </div>
                     )}
