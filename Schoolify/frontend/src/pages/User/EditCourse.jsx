@@ -741,7 +741,10 @@ function TopicsSection({ courseId }) {
                                     {(topic.subtabs || []).map((subtab) => (
                                         <li key={subtab._id} className="list-group-item">
                                             <div className="d-flex justify-content-between mb-2">
-                                                <span>{subtab.title}</span>
+                                                <div>
+                                                    <strong>{subtab.title}</strong>
+                                                    <p className="text-muted mb-0">{subtab.description}</p> {/* Mostrar descripción */}
+                                                </div>
                                                 <button
                                                     className="btn btn-warning btn-sm"
                                                     onClick={() => startEditingSubtopic({...subtab, topicId: topic._id})}
@@ -749,7 +752,6 @@ function TopicsSection({ courseId }) {
                                                     Editar
                                                 </button>
                                             </div>
-                                            
                                             <div className="mt-2">
                                                 <h6>Archivos del subtema</h6>
                                                 <div className="mb-3">
@@ -765,7 +767,6 @@ function TopicsSection({ courseId }) {
                                                         Subir Archivo
                                                     </button>
                                                 </div>
-                                                
                                                 {uploadedFiles[`${topic._id}_${subtab._id}`] && uploadedFiles[`${topic._id}_${subtab._id}`].length > 0 ? (
                                                     <ul className="list-group">
                                                         {uploadedFiles[`${topic._id}_${subtab._id}`].map(file => (
