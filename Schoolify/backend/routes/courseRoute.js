@@ -21,7 +21,7 @@ courseRouter.post("/", upload.single("image"), async (req, res) => {
 
         // Find the user by teacher username
         
-        const user = await User.findOne({ teacher });
+        const user = await User.findOne({ username : teacher });
 
         if (!user) {
             return res.status(404).json({ message: "Teacher not found" });

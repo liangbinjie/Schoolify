@@ -200,6 +200,50 @@ evaluationRouter.get("/:courseId/results/:studentId", async (req, res) => {
   }
 });
 
+// Obtener promedios de resultados por curso
+evaluationRouter.get("/:courseId/results", async (req, res) => {
+  const { courseId } = req.params;
+
+  try {
+    // Obtener todas las evaluaciones del curso
+    const evaluations = await Evaluation.find({ course: courseId }).select("_id");
+    const evaluationIds = evaluations.map((evaluation) => evaluation._id);
+
+    // Obtener los resultados de las evaluaciones
+    const results = await EvaluationResult.find({ evaluation: { $in: evaluationIds } })
+      .populate("student", "firstName lastName email username");
+
+    // Agrupar resultados por estudiante
+    const studentScores = {};
+    results.forEach((result) => {
+      const studentId = result.student._id.toString();
+      if (!studentScores[studentId]) {
+        studentScores[studentId] = {
+          student: result.student,
+          totalScore: 0,
+          evaluationCount: 0,
+        };
+      }
+      studentScores[studentId].totalScore += result.score;
+      studentScores[studentId].evaluationCount += 1;
+    });
+
+    // Calcular el promedio por estudiante
+    const studentAverages = Object.values(studentScores).map((entry) => ({
+      student: entry.student,
+      averageScore: entry.evaluationCount > 0 ? (entry.totalScore / entry.evaluationCount).toFixed(2) : "N/A",
+    }));
+
+    res.status(200).json({
+      totalEvaluations: evaluations.length,
+      studentAverages,
+    });
+  } catch (err) {
+    console.error("Error fetching evaluation results:", err);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 evaluationRouter.get("/:courseId/evaluation/:evaluationId", async (req, res) => {
   const { courseId, evaluationId } = req.params;
 

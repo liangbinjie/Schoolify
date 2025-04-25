@@ -1512,46 +1512,34 @@ function EvaluationsSection({ courseId }) {
 function StudentsSection({ courseId }) {
     const [students, setStudents] = useState([]);
     const [averageScores, setAverageScores] = useState({});
+    const [totalEvaluations, setTotalEvaluations] = useState(0);
 
     useEffect(() => {
-        // Obtener estudiantes del curso
-        const fetchStudents = async () => {
+        // Obtener estudiantes y resultados de evaluaciones
+        const fetchStudentsAndResults = async () => {
             try {
-                const response = await axios.get(`http://localhost:5000/courses/${courseId}/students`);
-                setStudents(response.data);
-            } catch (error) {
-                console.error("Error fetching students:", error);
-            }
-        };
+                // Obtener estudiantes del curso
+                const studentsResponse = await axios.get(`http://localhost:5000/courses/${courseId}/students`);
+                setStudents(studentsResponse.data);
 
-        // Obtener resultados de evaluaciones y calcular promedios
-        const fetchEvaluationResults = async () => {
-            try {
-                const response = await axios.get(`http://localhost:5000/api/evaluations/${courseId}/results`);
-                const results = response.data;
+                // Obtener resultados de evaluaciones
+                const resultsResponse = await axios.get(`http://localhost:5000/api/evaluations/${courseId}/results`);
+                const { totalEvaluations, studentAverages } = resultsResponse.data;
 
-                // Calcular promedios por estudiante
-                const scores = {};
-                results.forEach((result) => {
-                    const studentId = result.student._id;
-                    if (!scores[studentId]) scores[studentId] = [];
-                    scores[studentId].push(result.score);
-                });
-
+                // Mapear promedios por estudiante
                 const averages = {};
-                Object.keys(scores).forEach((studentId) => {
-                    const totalScore = scores[studentId].reduce((sum, score) => sum + score, 0);
-                    averages[studentId] = (totalScore / scores[studentId].length).toFixed(2); // Promedio con 2 decimales
+                studentAverages.forEach((entry) => {
+                    averages[entry.student._id] = entry.averageScore;
                 });
 
                 setAverageScores(averages);
+                setTotalEvaluations(totalEvaluations);
             } catch (error) {
-                console.error("Error fetching evaluation results:", error);
+                console.error("Error fetching students or evaluation results:", error);
             }
         };
 
-        fetchStudents();
-        fetchEvaluationResults();
+        fetchStudentsAndResults();
     }, [courseId]);
 
     return (
@@ -1575,7 +1563,11 @@ function StudentsSection({ courseId }) {
                                 <td>{student.lastName}</td>
                                 <td>{student.username}</td>
                                 <td>{student.email}</td>
-                                <td>{averageScores[student._id] || "N/A"}</td>
+                                <td>
+                                    {totalEvaluations > 0
+                                        ? averageScores[student._id] || "N/A"
+                                        : "Sin evaluaciones"}
+                                </td>
                             </tr>
                         ))}
                     </tbody>
