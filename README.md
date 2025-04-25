@@ -39,8 +39,8 @@ Proyecto Bases II 2025
 - [x] **HU13**: Como estudiante, debo matricularme a un curso.
 - [x] **HU14**: Como estudiante, debo ver lista de cursos matriculados.
 - [x] **HU15**: Como estudiante, debo ver secciones/contenido de un curso.
-- [ ] **HU16**: Como estudiante, debo realizar evaluaciones y ver resultado inmediato.
-- [ ] **HU17**: Como estudiante, debo ver resultados de todas mis evaluaciones por curso.
+- [x] **HU16**: Como estudiante, debo realizar evaluaciones y ver resultado inmediato.
+- [x] **HU17**: Como estudiante, debo ver resultados de todas mis evaluaciones por curso.
 - [x] **HU18**: Como estudiante, debo enviar consultas a docentes mediante mensajes.
 - [x] **HU19**: Como estudiante, debo ver lista de otros estudiantes en el curso.
 
