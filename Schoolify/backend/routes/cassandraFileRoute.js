@@ -6,25 +6,21 @@ import { initCassandra, checkCassandraCluster } from '../db/cassandra.js';
 
 const cassandraFileRouter = express.Router();
 
-// Configuración de multer para almacenar archivos en memoria
 const storage = multer.memoryStorage();
 const upload = multer({ 
   storage,
   limits: { fileSize: 50 * 1024 * 1024 } // Límite de 50MB
 });
 
-// Función para verificar la conexión al clúster
 async function verifyConnection() {
   const clusterInfo = await checkCassandraCluster();
   console.log('Estado de la conexión:', clusterInfo.connected);
   console.log('Número total de nodos:', clusterInfo.totalNodes);
 
-  // Añadir información sobre el datacenter (nombre del clúster)
-  if (clusterInfo.connected && clusterInfo.localNode) {
+    if (clusterInfo.connected && clusterInfo.localNode) {
     console.log('Datacenter del nodo local:', clusterInfo.localNode.data_center);
     
-    // Mostrar todos los datacenters en el clúster
-    const datacenters = new Set();
+        const datacenters = new Set();
     datacenters.add(clusterInfo.localNode.data_center);
     
     if (clusterInfo.peerNodes && clusterInfo.peerNodes.length > 0) {

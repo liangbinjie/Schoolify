@@ -7,7 +7,7 @@ class CassandraFile {
     const client = getClient();
     
     // Garantizar que subtopicId tenga un valor válido para Cassandra
-    // Si es null o undefined, usamos una cadena vacía para indicar que es un archivo de nivel de tema
+    // Si es null o undefined, usamos TOP LEVEL para indicar que es un archivo de nivel de tema
     const subtopicId = fileData.subtopicId || 'TOP_LEVEL';
     
     const params = [
@@ -133,13 +133,11 @@ class CassandraFile {
   static async deleteFileById(fileId) {
     try {
       const client = getClient();
-      // Primero obtener los datos del archivo para poder eliminar de la tabla secundaria
       const fileData = await this.getFileById(fileId);
       if (!fileData) {
         return false;
       }
       
-      // Usar el valor actual de subtopic_id
       const subtopicId = fileData.subtopic_id || 'TOP_LEVEL';
       
       // Eliminar de la tabla principal

@@ -53,7 +53,6 @@ courseEnrollmentRouter.post("/unenroll/", async (req, res) => {
             return res.status(404).json({ message: "User not found" });
         }
         
-        // Check if the user is enrolled in the course
         if (course.studentList.includes(user.username)) {
             // Remove the user from the course's student list
             course.studentList = course.studentList.filter(student => student !== user.username);
@@ -83,7 +82,6 @@ courseEnrollmentRouter.get("/students/:courseID", async (req, res) => {
             return res.status(404).json({ message: "Course not found" });
         }
 
-        // Get all users enrolled in the course
         const students = course.studentList;
 
         res.status(200).json(students);

@@ -10,11 +10,11 @@ function Navbar() {
   const searchContainerRef = useRef(null);
 
   // Estados para la funcionalidad de búsqueda
-  const [searchQuery, setSearchQuery] = useState(''); // Texto actual de búsqueda
-  const [searchType, setSearchType] = useState('courses'); // Tipo de búsqueda (cursos/usuarios)
-  const [searchResults, setSearchResults] = useState([]); // Resultados de la API
-  const [showResults, setShowResults] = useState(false); // Controla la visibilidad del menú de resultados
-  const [isLoading, setIsLoading] = useState(false); // Estado de carga de la búsqueda
+  const [searchQuery, setSearchQuery] = useState(''); 
+  const [searchType, setSearchType] = useState('courses'); 
+  const [searchResults, setSearchResults] = useState([]); 
+  const [showResults, setShowResults] = useState(false); 
+  const [isLoading, setIsLoading] = useState(false); 
 
   // Cierra los resultados cuando se hace clic fuera del área de búsqueda
   useEffect(() => {
