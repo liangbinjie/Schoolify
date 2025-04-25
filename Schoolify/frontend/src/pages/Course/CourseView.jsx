@@ -19,7 +19,7 @@ function CourseView() {
     const [studentResults, setStudentResults] = useState([]);
     const [isLoading, setIsLoading] = useState({});
     const { user } = useAuth();
-    const navigate = useNavigate();
+    const [viewingStudents, setViewingStudents] = useState(false);
     
     // Función para calcular tamaño de archivo en formato legible
     const formatFileSize = (bytes) => {
@@ -304,6 +304,41 @@ function CourseView() {
         setEvaluationInProgress(false);
     };
 
+    const handleEnroll = async (courseId) => {
+        try {
+            const response = await axios.post(`http://localhost:5000/api/enrollment/enroll`, {
+                courseID: courseId,
+                userID: user._id,
+            });
+
+            if (response.status == 200) {
+                setIsEnrolled(true);
+                updateUser(response.data.user); // Actualiza el usuario en el contexto
+            }
+            console.log("Enrollment response:", response.data);
+        } catch (error) {
+            console.error("Error enrolling in course:", error);
+        }
+    }
+
+    const handleUnenroll = async (courseId) => {
+        try {
+            const response = await axios.post(`http://localhost:5000/api/enrollment/unenroll`, {
+                courseID: courseId,
+                userID: user._id,
+            });
+
+            if (response.status == 200) {
+                setIsEnrolled(false);
+                updateUser(response.data.user); // Actualiza el usuario en el contexto
+            }
+            console.log("Unenrollment response:", response.data);
+            // Aquí puedes manejar la respuesta después de la desmatrícula
+        } catch (error) {
+            console.error("Error unenrolling from course:", error);
+        }
+    }
+
     // Componente para mostrar la lista de evaluaciones
     const EvaluationsList = () => (
         <div className="mt-4">
@@ -472,6 +507,8 @@ function CourseView() {
                                 <strong>Profesor:</strong>{" "}
                                 <a href={`http://localhost:5173/users/${course.teacher}`}>{course.teacher}</a>
                             </p>
+                            <p>Fecha inicio: {course.startDate}</p>
+                            {course.endDate && <p>Fecha fin: {course.endDate}</p>}
                             <p className="text-muted fs-4">
                                 <strong>Estado:</strong>{" "}
                                 <span className={`badge ${course.state === 'active' ? 'bg-success' : 'bg-secondary'}`}>
@@ -480,6 +517,13 @@ function CourseView() {
                                      course.state === 'closed' ? 'Cerrado' : 'En edición'}
                                 </span>
                             </p>
+                            {(course.teacher !== user.username || course.state !== 'closed')&&
+                                (isEnrolled ? (
+                                    <button className="btn btn-danger mt-3" onClick={() => handleUnenroll(course._id)}>Desmatricularse</button>
+                                ) : (
+                                    <button className="btn btn-primary mt-3" onClick={() => handleEnroll(course._id)}>Matricularse</button>
+                                ))
+                            }
                         </div>
                     </div>
 
@@ -490,6 +534,14 @@ function CourseView() {
                                 onClick={() => setActiveTab("temas")}
                             >
                                 <i className="bi bi-book me-1"></i> Temas del Curso
+                            </button>
+                        </li>
+                        <li className="nav-item">
+                            <button
+                                className={`nav-link ${activeTab === "integrantes" ? "active" : ""}`}
+                                onClick={() => setActiveTab("integrantes")}
+                            >
+                                <i className="bi bi-book me-1"></i> Integrantes
                             </button>
                         </li>
                         {isEnrolled && (
@@ -566,6 +618,41 @@ function CourseView() {
                                     <div className="alert alert-info text-center my-4">
                                         <i className="bi bi-info-circle-fill me-2"></i>
                                         Este curso aún no tiene temas disponibles
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    )}
+
+                    {activeTab === "integrantes" && (
+                        <div className="card mt-4">
+                            <div className="card-body">
+                                <h5 className="card-title">
+                                    <i className="bi bi-people me-2"></i> Lista de Integrantes
+                                </h5>
+                                {course.studentList && course.studentList.length > 0 ? (
+                                    <div className="table-responsive">
+                                        <table className="table table-bordered table-hover">
+                                            <thead className="table-light">
+                                                <tr>
+                                                    <th>#</th>
+                                                    <th>Nombre de Usuario</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {course.studentList.map((student, index) => (
+                                                    <tr key={index}>
+                                                        <td>{index + 1}</td>
+                                                        <td>{student}</td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                ) : (
+                                    <div className="alert alert-info text-center">
+                                        <i className="bi bi-info-circle me-2"></i>
+                                        No hay estudiantes matriculados en este curso.
                                     </div>
                                 )}
                             </div>
