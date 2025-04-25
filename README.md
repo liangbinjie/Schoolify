@@ -32,7 +32,7 @@ Proyecto Bases II 2025
 - [x] **HU8**: Como docente, debo ver estudiantes matriculados y sus notas (promedio simple).
 - [x] **HU9**: Como docente, debo gestionar consultas/respuestas de estudiantes.
 - [x] **HU10**: Como docente, debo ver lista de mis cursos (activos, terminados).
-- [ ] **HU11**: Como docente, debo poder clonar un curso (copiar materiales, nuevo estado: edición).
+- [ ] **HU11**: Como docente, debo poder clonar un curso (copiar materiales, nuevo estado: edición). -- Implementado pero no funcional
 
 ## Interacción Estudiantil
 - [x] **HU12**: Como estudiante, debo buscar cursos publicados y ver su información.
@@ -49,12 +49,3 @@ Proyecto Bases II 2025
 - [x] **HU21**: Como usuario, debo buscar otros usuarios en el sistema.
 - [x] **HU22**: Como usuario, debo enviar/responder mensajes a otros usuarios.
 
-## To do
-- [ ] **HU6**: Se debe arreglar lo de crear evaluaciones
-- [ ] **HU8**: Se debe poder ver las notas en la lista de estudiantes
-- [ ] **HU11**: Como docente, debo poder clonar un curso (copiar materiales, nuevo estado: edición).
-- [ ] **HU16**: Como estudiante, debo realizar evaluaciones y ver resultado inmediato.
-- [ ] **HU17**: Como estudiante, debo ver resultados de todas mis evaluaciones por curso.
-
-## Puntos Extra
-- [ ] **EXTRA1**: Adjuntar fotos/videos en mensajes entre usuarios (+5 pts).
